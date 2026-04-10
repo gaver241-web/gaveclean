@@ -1,0 +1,166 @@
+[
+  {
+    "id": 1,
+    "name": "Detergente",
+    "brand": "GaveClean",
+    "stock": 20,
+    "emoji": "🧴",
+    "customLiters": 1,
+    "formula": [
+      {
+        "insumo": "Lauril Ether Sulfato de Sodio 70%",
+        "cantidad": 15,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Betaína",
+        "cantidad": 3,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Cloruro de Sodio",
+        "cantidad": 1.5,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Agua",
+        "cantidad": 79.5,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Fragancia",
+        "cantidad": 1,
+        "unidad": "%"
+      }
+    ],
+    "lt": 1,
+    "ings": [
+      {
+        "sid": 1775796888324,
+        "c": 0.056,
+        "u": "g"
+      }
+    ],
+    "pv": 0
+  },
+  {
+    "id": 2,
+    "name": "Lavavajilla",
+    "brand": "GaveClean",
+    "stock": 20,
+    "emoji": "🧽",
+    "customLiters": 2,
+    "formula": [
+      {
+        "insumo": "Lauril Ether Sulfato de Sodio 70%",
+        "cantidad": 12,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Dietanolamida de coco",
+        "cantidad": 3,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Sal industrial",
+        "cantidad": 1,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Agua",
+        "cantidad": 83,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Colorante",
+        "cantidad": 1,
+        "unidad": "%"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Limpia Todo",
+    "brand": "GaveClean",
+    "stock": 0,
+    "emoji": "🧹",
+    "customLiters": 2,
+    "formula": [
+      {
+        "insumo": "EDTA tetrasódico",
+        "cantidad": 0.5,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Surfactante no iónico",
+        "cantidad": 2,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Alcohol isopropílico",
+        "cantidad": 5,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Agua",
+        "cantidad": 92.5,
+        "unidad": "%"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Jabón Liquido",
+    "brand": "GaveClean",
+    "stock": 0,
+    "emoji": "🫧",
+    "customLiters": 2,
+    "formula": [
+      {
+        "insumo": "Lauril Ether Sulfato de Sodio 70%",
+        "cantidad": 10,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Glicerina USP",
+        "cantidad": 3,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Agua",
+        "cantidad": 86,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Fragancia",
+        "cantidad": 1,
+        "unidad": "%"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Lejía",
+    "brand": "GaveClean",
+    "stock": 20,
+    "emoji": "🧼",
+    "customLiters": 2,
+    "formula": [
+      {
+        "insumo": "Hipoclorito de Sodio 10%",
+        "cantidad": 50,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Agua",
+        "cantidad": 49.5,
+        "unidad": "%"
+      },
+      {
+        "insumo": "Hidróxido de Sodio",
+        "cantidad": 0.5,
+        "unidad": "%"
+      }
+    ]
+  }
+]
