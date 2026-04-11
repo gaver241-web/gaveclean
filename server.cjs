@@ -72,8 +72,20 @@ app.use(express.static(path.join(__dirname, "dist")));
 
 // ── PRODUCTOS ────────────────────────────────────────────────
 app.get("/api/products", async (req, res) => {
-  const data = await db.collection("products").find({}).toArray();
-  res.json(data.map(d => ({ ...d, id: d.id || d._id })));
+  try {
+    const data = await db.collection("products").find({}).toArray();
+    console.log(`[GET /api/products] Encontrados: ${data.length} documentos`);
+    const result = data.map(d => {
+      const item = { ...d };
+      if (!item.id) item.id = d._id.toString();
+      delete item._id;
+      return item;
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("[GET /api/products] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post("/api/products", async (req, res) => {
@@ -96,8 +108,22 @@ app.delete("/api/products/:id", async (req, res) => {
 
 // ── INVENTARIO ───────────────────────────────────────────────
 app.get("/api/inventario", async (req, res) => {
-  const data = await db.collection("inventario").find({}).toArray();
-  res.json(data.map(d => ({ ...d, id: d.id || d._id })));
+  try {
+    const data = await db.collection("inventario").find({}).toArray();
+    console.log(`[GET /api/inventario] Encontrados: ${data.length} documentos`);
+    // Convertir _id de MongoDB a string para que el frontend lo use bien
+    const result = data.map(d => {
+      const item = { ...d };
+      // Usar id numérico si existe, sino convertir _id a string
+      if (!item.id) item.id = d._id.toString();
+      delete item._id;
+      return item;
+    });
+    res.json(result);
+  } catch (err) {
+    console.error("[GET /api/inventario] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post("/api/inventario", async (req, res) => {
@@ -148,8 +174,18 @@ app.post("/api/inventario/importar", async (req, res) => {
 
 // ── VENTAS ───────────────────────────────────────────────────
 app.get("/api/ventas", async (req, res) => {
-  const data = await db.collection("ventas").find({}).toArray();
-  res.json(data.map(d => ({ ...d, id: d.id || d._id })));
+  try {
+    const data = await db.collection("ventas").find({}).toArray();
+    const result = data.map(d => {
+      const item = { ...d };
+      if (!item.id) item.id = d._id.toString();
+      delete item._id;
+      return item;
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post("/api/ventas", async (req, res) => {
