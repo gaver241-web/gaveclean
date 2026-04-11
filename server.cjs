@@ -111,10 +111,8 @@ app.get("/api/inventario", async (req, res) => {
   try {
     const data = await db.collection("inventario").find({}).toArray();
     console.log(`[GET /api/inventario] Encontrados: ${data.length} documentos`);
-    // Convertir _id de MongoDB a string para que el frontend lo use bien
     const result = data.map(d => {
       const item = { ...d };
-      // Usar id numérico si existe, sino convertir _id a string
       if (!item.id) item.id = d._id.toString();
       delete item._id;
       return item;
@@ -200,7 +198,40 @@ app.delete("/api/ventas/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── STOCK DE PRODUCTOS ──────────────────────────────────────
+app.get("/api/stock", async (req, res) => {
+  try {
+    const data = await db.collection("stock").find({}).toArray();
+    res.json(data.map(d => { const i={...d}; if(!i.id)i.id=d._id.toString(); delete i._id; return i; }));
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post("/api/stock", async (req, res) => {
+  try {
+    const item = { id: Date.now(), ...req.body };
+    await db.collection("stock").insertOne(item);
+    res.json(item);
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put("/api/stock/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.collection("stock").updateOne({ id }, { $set: req.body });
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete("/api/stock/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.collection("stock").deleteOne({ id });
+    res.json({ ok: true });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Fallback React ───────────────────────────────────────────
+// ⚠️ SIEMPRE debe ir AL FINAL, después de todas las rutas /api
 app.get("/{*splat}", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
@@ -213,26 +244,4 @@ connectDB().then(() => {
 }).catch(err => {
   console.error("❌ Error conectando a MongoDB:", err);
   process.exit(1);
-});
-// ── STOCK DE PRODUCTOS ──────────────────────────────────────
-app.get("/api/stock", async (req, res) => {
-  try {
-    const data = await db.collection("stock").find({}).toArray();
-    res.json(data.map(d => { const i={...d}; if(!i.id)i.id=d._id.toString(); delete i._id; return i; }));
-  } catch(err) { res.status(500).json({ error: err.message }); }
-});
-app.post("/api/stock", async (req, res) => {
-  const item = { id: Date.now(), ...req.body };
-  await db.collection("stock").insertOne(item);
-  res.json(item);
-});
-app.put("/api/stock/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  await db.collection("stock").updateOne({ id }, { $set: req.body });
-  res.json({ ok: true });
-});
-app.delete("/api/stock/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
-  await db.collection("stock").deleteOne({ id });
-  res.json({ ok: true });
 });
