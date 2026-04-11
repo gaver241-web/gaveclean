@@ -6,7 +6,9 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+console.log("DATA_DIR:", DATA_DIR);
+console.log("Archivos:", fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR) : "vacio");
 
 // ── Mapa de nombres de boleta → nombre en inventario ────────
 // Esto permite que el PDF de DL&SON se empareje con tus insumos
@@ -49,76 +51,8 @@ function normalizarNombre(descripcionBoleta) {
 }
 
 const DEFAULTS = {
-  products: [
-    { id: 1, name: "Detergente", brand: "GaveClean", stock: 20.0, emoji: "🧴", customLiters: 2, formula: [
-      { insumo: "Lauril Ether Sulfato de Sodio 70%", cantidad: 15, unidad: "%" },
-      { insumo: "Betaína", cantidad: 3, unidad: "%" },
-      { insumo: "Cloruro de Sodio", cantidad: 1.5, unidad: "%" },
-      { insumo: "Agua", cantidad: 79.5, unidad: "%" },
-      { insumo: "Fragancia", cantidad: 1, unidad: "%" },
-    ]},
-    { id: 2, name: "Lavavajilla", brand: "GaveClean", stock: 0.0, emoji: "🧽", customLiters: 2, formula: [
-      { insumo: "Lauril Ether Sulfato de Sodio 70%", cantidad: 12, unidad: "%" },
-      { insumo: "Dietanolamida de coco", cantidad: 3, unidad: "%" },
-      { insumo: "Sal industrial", cantidad: 1, unidad: "%" },
-      { insumo: "Agua", cantidad: 83, unidad: "%" },
-      { insumo: "Colorante", cantidad: 1, unidad: "%" },
-    ]},
-    { id: 3, name: "Limpia Todo", brand: "GaveClean", stock: 0.0, emoji: "🧹", customLiters: 2, formula: [
-      { insumo: "EDTA tetrasódico", cantidad: 0.5, unidad: "%" },
-      { insumo: "Surfactante no iónico", cantidad: 2, unidad: "%" },
-      { insumo: "Alcohol isopropílico", cantidad: 5, unidad: "%" },
-      { insumo: "Agua", cantidad: 92.5, unidad: "%" },
-    ]},
-    { id: 4, name: "Jabón Liquido", brand: "GaveClean", stock: 0.0, emoji: "🫧", customLiters: 2, formula: [
-      { insumo: "Lauril Ether Sulfato de Sodio 70%", cantidad: 10, unidad: "%" },
-      { insumo: "Glicerina USP", cantidad: 2, unidad: "%" },
-      { insumo: "Betaína", cantidad: 2, unidad: "%" },
-      { insumo: "Agua", cantidad: 85, unidad: "%" },
-      { insumo: "Fragancia", cantidad: 1, unidad: "%" },
-    ]},
-    { id: 5, name: "Jabón Liquido", brand: "GaveClean", stock: 0.0, emoji: "🫧", customLiters: 2, formula: [
-      { insumo: "Lauril Ether Sulfato de Sodio 70%", cantidad: 10, unidad: "%" },
-      { insumo: "Glicerina USP", cantidad: 3, unidad: "%" },
-      { insumo: "Agua", cantidad: 86, unidad: "%" },
-      { insumo: "Fragancia", cantidad: 1, unidad: "%" },
-    ]},
-    { id: 6, name: "Lejía", brand: "GaveClean", stock: 0.0, emoji: "🧼", customLiters: 2, formula: [
-      { insumo: "Hipoclorito de Sodio 10%", cantidad: 50, unidad: "%" },
-      { insumo: "Agua", cantidad: 49.5, unidad: "%" },
-      { insumo: "Hidróxido de Sodio", cantidad: 0.5, unidad: "%" },
-    ]},
-    { id: 7, name: "Lejía", brand: "Glave", stock: 0.0, emoji: "🧼", customLiters: 2, formula: [
-      { insumo: "Hipoclorito de Sodio 10%", cantidad: 60, unidad: "%" },
-      { insumo: "Agua", cantidad: 39.5, unidad: "%" },
-      { insumo: "Estabilizante", cantidad: 0.5, unidad: "%" },
-    ]},
-  ],
-  inventario: [
-    { id: 1, insumo: "Lauril Ether Sulfato de Sodio 70%", stock: 10.0, unidad: "kg" },
-    { id: 2, insumo: "Betaína", stock: 2.0, unidad: "kg" },
-    { id: 3, insumo: "Dietanolamida de coco", stock: 2.0, unidad: "kg" },
-    { id: 4, insumo: "EDTA tetrasódico", stock: 2.0, unidad: "kg" },
-    { id: 5, insumo: "Glicerina USP", stock: 2.0, unidad: "kg" },
-    { id: 6, insumo: "Hipoclorito de Sodio 10%", stock: 5.0, unidad: "L" },
-    { id: 7, insumo: "Cloruro de Sodio", stock: 3.0, unidad: "kg" },
-    { id: 8, insumo: "Trietanolamina 100%", stock: 1.0, unidad: "kg" },
-    { id: 9, insumo: "Ácido Sulfónico Lineal", stock: 1.0, unidad: "kg" },
-    { id: 10, insumo: "Nonil Fenol 10 Moles NP10", stock: 1.0, unidad: "kg" },
-    { id: 11, insumo: "Preservante Biocida", stock: 1.0, unidad: "kg" },
-    { id: 12, insumo: "Potasa Cáustica 90%", stock: 2.0, unidad: "kg" },
-    { id: 13, insumo: "Fragancia Floral Clásico", stock: 0.25, unidad: "kg" },
-    { id: 14, insumo: "Fragancia Lavanda", stock: 0.25, unidad: "kg" },
-    { id: 15, insumo: "Fragancia Baby Intense", stock: 0.25, unidad: "kg" },
-    { id: 16, insumo: "Fragancia Primaveral Perú", stock: 0.25, unidad: "kg" },
-    { id: 17, insumo: "Fragancia Limón Fresco", stock: 0.25, unidad: "kg" },
-    { id: 18, insumo: "Fragancia Manzana", stock: 0.25, unidad: "kg" },
-    { id: 19, insumo: "Fragancia Brisa Marina", stock: 0.25, unidad: "kg" },
-    { id: 20, insumo: "Colorante Verde", stock: 0.1, unidad: "kg" },
-    { id: 21, insumo: "Colorante Azul", stock: 0.1, unidad: "kg" },
-    { id: 22, insumo: "Colorante Rojo", stock: 0.1, unidad: "kg" },
-    { id: 23, insumo: "Colorante Amarillo", stock: 0.1, unidad: "kg" },
-  ],
+  products: [{"id":1,"name":"Detergente","brand":"GaveClean","stock":20,"emoji":"🧴","customLiters":1,"formula":[{"insumo":"Lauril Ether Sulfato de Sodio 70%","cantidad":15,"unidad":"%"},{"insumo":"Betaína","cantidad":3,"unidad":"%"},{"insumo":"Cloruro de Sodio","cantidad":1.5,"unidad":"%"},{"insumo":"Agua","cantidad":79.5,"unidad":"%"},{"insumo":"Fragancia","cantidad":1,"unidad":"%"}],"lt":1,"ings":[{"sid":1775796888324,"c":0.056,"u":"g"}],"pv":0},{"id":2,"name":"Lavavajilla","brand":"GaveClean","stock":20,"emoji":"🧽","customLiters":2,"formula":[{"insumo":"Lauril Ether Sulfato de Sodio 70%","cantidad":12,"unidad":"%"},{"insumo":"Dietanolamida de coco","cantidad":3,"unidad":"%"},{"insumo":"Sal industrial","cantidad":1,"unidad":"%"},{"insumo":"Agua","cantidad":83,"unidad":"%"},{"insumo":"Colorante","cantidad":1,"unidad":"%"}]},{"id":3,"name":"Limpia Todo","brand":"GaveClean","stock":0,"emoji":"🧹","customLiters":2,"formula":[{"insumo":"EDTA tetrasódico","cantidad":0.5,"unidad":"%"},{"insumo":"Surfactante no iónico","cantidad":2,"unidad":"%"},{"insumo":"Alcohol isopropílico","cantidad":5,"unidad":"%"},{"insumo":"Agua","cantidad":92.5,"unidad":"%"}]},{"id":5,"name":"Jabón Liquido","brand":"GaveClean","stock":0,"emoji":"🫧","customLiters":2,"formula":[{"insumo":"Lauril Ether Sulfato de Sodio 70%","cantidad":10,"unidad":"%"},{"insumo":"Glicerina USP","cantidad":3,"unidad":"%"},{"insumo":"Agua","cantidad":86,"unidad":"%"},{"insumo":"Fragancia","cantidad":1,"unidad":"%"}]},{"id":6,"name":"Lejía","brand":"GaveClean","stock":20,"emoji":"🧼","customLiters":2,"formula":[{"insumo":"Hipoclorito de Sodio 10%","cantidad":50,"unidad":"%"},{"insumo":"Agua","cantidad":49.5,"unidad":"%"},{"insumo":"Hidróxido de Sodio","cantidad":0.5,"unidad":"%"}]}],
+  inventario: [{"id":1775796888324,"n":"Lauril Ether Sulfato de Sodium 70%","insumo":"Lauril Ether Sulfato de Sodium 70%","u":"kg","unidad":"kg","stock":20,"pg":9.2834,"prov":"DL & SON E.I.R.L."},{"id":1775796888333,"n":"Betaína","insumo":"Betaína","u":"kg","unidad":"kg","stock":2,"pg":6.5961,"prov":"DL & SON E.I.R.L."},{"id":1775796888345,"n":"Coperland KD - Dietanolamina Coco","insumo":"Coperland KD - Dietanolamina Coco","u":"kg","unidad":"kg","stock":2,"pg":12.3546,"prov":"DL & SON E.I.R.L."},{"id":1775796888355,"n":"EDTA Tetrasódico","insumo":"EDTA Tetrasódico","u":"kg","unidad":"kg","stock":2,"pg":16.6124,"prov":"DL & SON E.I.R.L."},{"id":1775796888364,"n":"Glicerina USP","insumo":"Glicerina USP","u":"kg","unidad":"kg","stock":2,"pg":7.678,"prov":"DL & SON E.I.R.L."},{"id":1775796889167,"n":"Trietanolamina 100%","insumo":"Trietanolamina 100%","u":"kg","unidad":"kg","stock":2,"pg":19.195,"prov":"DL & SON E.I.R.L."},{"id":1775796889194,"n":"Ácido Sulfónico Lineal","insumo":"Ácido Sulfónico Lineal","u":"kg","unidad":"kg","stock":4,"pg":11.517,"prov":"DL & SON E.I.R.L."},{"id":1775796889219,"n":"Hipoclorito 8%","insumo":"Hipoclorito 8%","u":"kg","unidad":"kg","stock":1,"pg":1.5705,"prov":"DL & SON E.I.R.L."},{"id":1775796889260,"n":"Sal - Cloruro de Sodio","insumo":"Sal - Cloruro de Sodio","u":"kg","unidad":"kg","stock":1,"pg":1.745,"prov":"DL & SON E.I.R.L."},{"id":1775796889274,"n":"Fragancia Floral Clásico","insumo":"Fragancia Floral Clásico","u":"kg","unidad":"kg","stock":0.75,"pg":98.8368,"prov":"DL & SON E.I.R.L."},{"id":1775796889289,"n":"Fragancia Lavanda","insumo":"Fragancia Lavanda","u":"kg","unidad":"kg","stock":0.75,"pg":88.9601,"prov":"DL & SON E.I.R.L."},{"id":1775796889302,"n":"Fragancia Baby Intense","insumo":"Fragancia Baby Intense","u":"kg","unidad":"kg","stock":0.25,"pg":74.1276,"prov":"DL & SON E.I.R.L."},{"id":1775796889315,"n":"Fragancia Primaveral Perú","insumo":"Fragancia Primaveral Perú","u":"kg","unidad":"kg","stock":0.25,"pg":82.364,"prov":"DL & SON E.I.R.L."},{"id":1775796889336,"n":"Fragancia Limón Fresco","insumo":"Fragancia Limón Fresco","u":"kg","unidad":"kg","stock":0.75,"pg":104.351,"prov":"DL & SON E.I.R.L."},{"id":1775796889358,"n":"Fragancia Manzana","insumo":"Fragancia Manzana","u":"kg","unidad":"kg","stock":0.25,"pg":90.6004,"prov":"DL & SON E.I.R.L."},{"id":1775796889387,"n":"Fragancia Brisa Marina","insumo":"Fragancia Brisa Marina","u":"kg","unidad":"kg","stock":0.25,"pg":74.1276,"prov":"DL & SON E.I.R.L."},{"id":1775796889407,"n":"Fragancia Dove Plus","insumo":"Fragancia Dove Plus","u":"kg","unidad":"kg","stock":0.5,"pg":108.7135,"prov":"DL & SON E.I.R.L."},{"id":1775796889417,"n":"Colorante Verde","insumo":"Colorante Verde","u":"kg","unidad":"kg","stock":0.1,"pg":144.137,"prov":"DL & SON E.I.R.L."},{"id":1775796889426,"n":"Colorante Azul","insumo":"Colorante Azul","u":"kg","unidad":"kg","stock":0.1,"pg":144.137,"prov":"DL & SON E.I.R.L."},{"id":1775796889440,"n":"Colorante Rojo","insumo":"Colorante Rojo","u":"kg","unidad":"kg","stock":0.1,"pg":144.137,"prov":"DL & SON E.I.R.L."},{"id":1775796889447,"n":"Colorante Amarillo","insumo":"Colorante Amarillo","u":"kg","unidad":"kg","stock":0.1,"pg":144.137,"prov":"DL & SON E.I.R.L."},{"id":1775796889458,"n":"Potasa Cáustica 90%","insumo":"Potasa Cáustica 90%","u":"kg","unidad":"kg","stock":2,"pg":9.074,"prov":"DL & SON E.I.R.L."},{"id":1775796889464,"n":"Preservante - Biocida","insumo":"Preservante - Biocida","u":"u","unidad":"u","stock":2,"pg":12.9479,"prov":"DL & SON E.I.R.L."},{"id":1775796889470,"n":"Nonil Fenol 10 Moles - NP10","insumo":"Nonil Fenol 10 Moles - NP10","u":"kg","unidad":"kg","stock":3,"pg":13.262,"prov":"DL & SON E.I.R.L."},{"id":1775796889477,"n":"Carbopol 940","insumo":"Carbopol 940","u":"kg","unidad":"kg","stock":1,"pg":64.565,"prov":"DL & SON E.I.R.L."},{"id":1775796889483,"n":"Cloruro de Cetrimonio Quartamin 60","insumo":"Cloruro de Cetrimonio Quartamin 60","u":"kg","unidad":"kg","stock":1,"pg":16.403,"prov":"DL & SON E.I.R.L."},{"id":1775796889488,"n":"Ácido Cítrico","insumo":"Ácido Cítrico","u":"kg","unidad":"kg","stock":1,"pg":6.8055,"prov":"DL & SON E.I.R.L."},{"id":1775796889495,"n":"CMC Tixotrol","insumo":"CMC Tixotrol","u":"u","unidad":"u","stock":1,"pg":27.92,"prov":"DL & SON E.I.R.L."},{"id":1775796889500,"n":"Óxido de Amina","insumo":"Óxido de Amina","u":"kg","unidad":"kg","stock":1,"pg":12.9479,"prov":"DL & SON E.I.R.L."},{"id":1775796889505,"n":"Propilenglicol","insumo":"Propilenglicol","u":"u","unidad":"u","stock":1,"pg":13.1922,"prov":"DL & SON E.I.R.L."},{"id":1775796889511,"n":"Hipoclorito de Sodio","insumo":"Hipoclorito de Sodio","u":"lt","unidad":"lt","stock":20,"pg":1.3,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889516,"n":"Bidón","insumo":"Bidón","u":"u","unidad":"u","stock":1,"pg":6.999,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889521,"n":"Ácido Sulfónico","insumo":"Ácido Sulfónico","u":"kg","unidad":"kg","stock":2,"pg":13,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889526,"n":"Butil Glicol","insumo":"Butil Glicol","u":"kg","unidad":"kg","stock":2,"pg":14.998,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889530,"n":"Alcohol Isopropílico","insumo":"Alcohol Isopropílico","u":"lt","unidad":"lt","stock":2,"pg":7.493,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889536,"n":"Silicona 60","insumo":"Silicona 60","u":"kg","unidad":"kg","stock":1,"pg":16.992,"prov":"VELQUIMICOS S.A.C."},{"id":1775796889543,"n":"Nacarante","insumo":"Nacarante","u":"kg","unidad":"kg","stock":1,"pg":25,"prov":"DUO KLEEN S.A.C."},{"id":1775796889549,"n":"Cloruro de Benzalconio","insumo":"Cloruro de Benzalconio","u":"kg","unidad":"kg","stock":2,"pg":25,"prov":"DUO KLEEN S.A.C."},{"id":1775796889555,"n":"Envase PET Gatillo 650ml","insumo":"Envase PET Gatillo 650ml","u":"u","unidad":"u","stock":100,"pg":0.77,"prov":"TRESCOPERU S.A.C.","env":true},{"id":1775796889560,"n":"Tapa Gatillo Blanco B28/410","insumo":"Tapa Gatillo Blanco B28/410","u":"u","unidad":"u","stock":100,"pg":0.72,"prov":"TRESCOPERU S.A.C.","env":true},{"id":1775796889569,"n":"Envase PET Multiuso 1000ml","insumo":"Envase PET Multiuso 1000ml","u":"u","unidad":"u","stock":100,"pg":0.81,"prov":"TRESCOPERU S.A.C.","env":true},{"id":1775796889576,"n":"Tapa Polipropileno Rosca Larga","insumo":"Tapa Polipropileno Rosca Larga","u":"u","unidad":"u","stock":100,"pg":0.072,"prov":"TRESCOPERU S.A.C.","env":true},{"id":1775796889582,"n":"Botella Gave 1000ml","insumo":"Botella Gave 1000ml","u":"u","unidad":"u","stock":100,"pg":0.4,"prov":"GAVE - Propio","env":true},{"id":1775796889587,"n":"Blanqueador Óptico BY3B","insumo":"Blanqueador Óptico BY3B","u":"kg","unidad":"kg","stock":2,"pg":23.73,"prov":"R&K SRL"},{"id":1775796889592,"n":"Aceite Pino 85%","insumo":"Aceite Pino 85%","u":"kg","unidad":"kg","stock":2,"pg":42.375,"prov":"R&K SRL"},{"id":1775796889597,"n":"Perlante en Frío (Laurion PK)","insumo":"Perlante en Frío (Laurion PK)","u":"kg","unidad":"kg","stock":2,"pg":23.73,"prov":"R&K SRL"},{"id":1775796889603,"n":"Alcohol Cetílico (Vegarol 1698)","insumo":"Alcohol Cetílico (Vegarol 1698)","u":"kg","unidad":"kg","stock":1,"pg":16.95,"prov":"R&K SRL"},{"id":1775796889609,"n":"Deyquart-A (Cloruro Cetrimonio 40%)","insumo":"Deyquart-A (Cloruro Cetrimonio 40%)","u":"kg","unidad":"kg","stock":1,"pg":15.25,"prov":"R&K SRL"},{"id":1775796889614,"n":"Antifoam TP200 (Antiespumante)","insumo":"Antifoam TP200 (Antiespumante)","u":"kg","unidad":"kg","stock":1,"pg":29.66,"prov":"R&K SRL"},{"id":1775796889618,"n":"Betaína Espumante (Aurobet C-TP200)","insumo":"Betaína Espumante (Aurobet C-TP200)","u":"kg","unidad":"kg","stock":1,"pg":10.17,"prov":"R&K SRL"},{"id":1775796889623,"n":"Cocamide DEA (Coperlam)","insumo":"Cocamide DEA (Coperlam)","u":"kg","unidad":"kg","stock":1,"pg":15.25,"prov":"R&K SRL"},{"id":1775796889628,"n":"Colorante Amarillo Piranine","insumo":"Colorante Amarillo Piranine","u":"kg","unidad":"kg","stock":0.1,"pg":211.9,"prov":"R&K SRL"}],
   ventas: [],
 };
 
