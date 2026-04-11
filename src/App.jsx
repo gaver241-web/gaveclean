@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const API = `http://${window.location.hostname}:3001/api`;
+const API = import.meta.env.DEV ? `http://${window.location.hostname}:3001/api` : "/api";
 const apiFetch = {
   get: (p) => fetch(`${API}${p}`).then(r => r.json()),
   post: (p, b) => fetch(`${API}${p}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) }).then(r => r.json()),
