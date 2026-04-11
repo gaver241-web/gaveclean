@@ -80,6 +80,8 @@ const INSUMOS_INICIALES = [
   { n:"Cloruro de Benzalconio", insumo:"Cloruro de Benzalconio", u:"kg", unidad:"kg", stock:2, pg:25.00, prov:"DUO KLEEN S.A.C." },
   { n:"Envase PET Gatillo 650ml", insumo:"Envase PET Gatillo 650ml", u:"u", unidad:"u", stock:100, pg:0.77, prov:"TRESCOPERU S.A.C.", env:true },
   { n:"Envase PET Multiuso 1000ml", insumo:"Envase PET Multiuso 1000ml", u:"u", unidad:"u", stock:100, pg:0.81, prov:"TRESCOPERU S.A.C.", env:true },
+  { n:"Tapa Gatillo Blanco B28/410", insumo:"Tapa Gatillo Blanco B28/410", u:"u", unidad:"u", stock:100, pg:0.72, prov:"TRESCOPERU S.A.C.", env:true },
+  { n:"Tapa Polipropileno Rosca Larga", insumo:"Tapa Polipropileno Rosca Larga", u:"u", unidad:"u", stock:100, pg:0.072, prov:"TRESCOPERU S.A.C.", env:true },
   { n:"Botella Gave 1000ml", insumo:"Botella Gave 1000ml", u:"u", unidad:"u", stock:100, pg:0.40, prov:"GAVE - Propio", env:true },
   { n:"Blanqueador Óptico BY3B", insumo:"Blanqueador Óptico BY3B", u:"kg", unidad:"kg", stock:2, pg:23.73, prov:"R&K SRL" },
   { n:"Aceite Pino 85%", insumo:"Aceite Pino 85%", u:"kg", unidad:"kg", stock:2, pg:42.375, prov:"R&K SRL" },
@@ -96,6 +98,15 @@ function f2(n){return parseFloat(n||0).toFixed(2)}
 function fDate(ts){return new Date(ts).toLocaleDateString("es-PE",{day:"2-digit",month:"short",year:"2-digit"})}
 function fDateStr(str){if(!str)return"—";return new Date(str+"T12:00:00").toLocaleDateString("es-PE",{day:"2-digit",month:"short",year:"2-digit"})}
 function montoEnSoles(c){return c.moneda==="USD"?c.montoOriginal*(c.tc||3.49):c.montoOriginal}
+
+// Helper: total real de una venta (suma items + delivery)
+function ventaTotalReal(v){
+  if(v.items&&Array.isArray(v.items)){
+    const subtotal=v.items.reduce((s,it)=>(s+(it.lt||0)*(it.pr||0)),0);
+    return subtotal+(parseFloat(v.delivery)||0);
+  }
+  return (v.tot||0)+(parseFloat(v.delivery)||0);
+}
 
 function useToast(){
   const [toast,setToast]=useState(null);
@@ -126,10 +137,11 @@ function ModalShell({title,onClose,children}){return(<div style={{position:"fixe
 
 // ──────── INICIO ─────────────────────────────────────────────
 function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCurProd,onNewProd}){
-  const totV=ventas.reduce((s,v)=>s+(v.tot||0),0);
+  // FIX: usar ventaTotalReal para calcular totales correctamente
+  const totV=ventas.reduce((s,v)=>s+ventaTotalReal(v),0);
   const totC=compras.reduce((s,c)=>s+montoEnSoles(c),0);
   const fiadas=ventas.filter(v=>v.pago==="fiado"&&!v.cobrado);
-  const totFiado=fiadas.reduce((s,v)=>s+(v.tot||0)+(v.delivery||0),0);
+  const totFiado=fiadas.reduce((s,v)=>s+ventaTotalReal(v),0);
 
   return(
     <div style={{paddingBottom:76}}>
@@ -139,7 +151,7 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
           <div><div style={{fontSize:20,fontWeight:800}}>GAVE Producción</div><div style={{fontSize:12,opacity:.75,marginTop:2}}>Control de fórmulas · inventario · ventas</div></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
-          {[[products.length,"Productos"],[`S/${Math.round(totV)}` ,"Ventas"],[insumos.length,"Insumos"],[`S/${Math.round(totC)}`,"Compras"]].map(([v,l])=>(
+          {[[products.length,"Productos"],[`S/${f2(totV)}`,"Ventas"],[insumos.length,"Insumos"],[`S/${Math.round(totC)}`,"Compras"]].map(([v,l])=>(
             <div key={l} style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"10px 4px",textAlign:"center",border:"1px solid rgba(255,255,255,.15)"}}>
               <div style={{fontSize:15,fontWeight:800,fontFamily:"monospace"}}>{v}</div>
               <div style={{fontSize:9,opacity:.75,marginTop:2,fontWeight:600,textTransform:"uppercase",letterSpacing:".04em"}}>{l}</div>
@@ -152,7 +164,6 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
         </div>}
       </div>
 
-      {/* Stock de productos terminados */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 8px"}}>
         <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase"}}>Stock de productos</div>
         <button onClick={()=>setPage("stock")} style={{padding:"5px 12px",border:"1.5px solid #0d7377",borderRadius:30,background:"#e0f5f5",color:"#0d7377",fontSize:12,fontWeight:700,cursor:"pointer"}}>Ver stock</button>
@@ -209,11 +220,8 @@ function PgStock({products,stockProductos,onRefresh,showToast}){
   const [editItem,setEditItem]=useState(null);
 
   async function saveStock(data){
-    if(data.id){
-      await apiFetch.put(`/stock/${data.id}`,data);
-    } else {
-      await apiFetch.post("/stock",data);
-    }
+    if(data.id){await apiFetch.put(`/stock/${data.id}`,data);}
+    else{await apiFetch.post("/stock",data);}
     onRefresh();showToast("Stock actualizado ✓");
     setShowAdd(false);setEditItem(null);
   }
@@ -255,7 +263,6 @@ function PgStock({products,stockProductos,onRefresh,showToast}){
         })}
         {stockProductos.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#8a9ab8",fontSize:14}}>Sin stock registrado.<br/>Toca "+ Agregar" para ingresar litros producidos.</div>}
       </div>
-
       {showAdd&&<ModalStock products={products} onClose={()=>setShowAdd(false)} onSave={saveStock}/>}
       {editItem&&<ModalStock item={editItem} products={products} onClose={()=>setEditItem(null)} onSave={saveStock} onDelete={()=>delStock(editItem.id)}/>}
     </div>
@@ -316,7 +323,6 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
         <div style={{flex:1}}><div style={{fontSize:17,fontWeight:800}}>{p.n||p.name}</div><div style={{fontSize:11,color:"#4a5d7a"}}>{p.ings.length} ingredientes · {p.lt}L</div></div>
         <button onClick={()=>setEditingProd(true)} style={{padding:"7px 14px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>⚙️</button>
       </div>
-
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"10px 16px",background:"#f0f6ff",borderBottom:"1px solid #e3f0ff"}}>
         {[{lbl:"Litros a preparar",val:p.lt,unit:"litros totales del lote",cb:v=>patch({lt:parseFloat(v)||1,customLiters:parseFloat(v)||1})},{lbl:"Precio venta S/",val:p.pv,unit:"por litro",cb:v=>patch({pv:parseFloat(v)||0})}].map(({lbl,val,unit,cb})=>(
           <div key={lbl} style={{background:"#fff",border:"1.5px solid #e3f0ff",borderRadius:8,padding:"10px 12px"}}>
@@ -328,7 +334,6 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
           </div>
         ))}
       </div>
-
       <div style={{padding:"10px 16px",display:"flex",flexDirection:"column",gap:6}}>
         {p.ings.map((ing,i)=>{
           const s=insumos.find(x=>x.id===ing.sid);
@@ -362,11 +367,9 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
           );
         })}
       </div>
-
       <button onClick={addIng} style={{margin:"2px 16px 6px",width:"calc(100% - 32px)",padding:11,background:"transparent",border:"1.5px dashed #c4d4e8",borderRadius:8,color:"#8a9ab8",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
         + Agregar insumo
       </button>
-
       <div style={{margin:"6px 16px 4px",background:"#f0f6ff",border:"1.5px solid #e3f0ff",borderRadius:12,padding:14,borderTop:"3px solid #1565c0"}}>
         <div style={{fontSize:11,fontWeight:800,color:"#1565c0",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Resumen económico</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -383,7 +386,6 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
         ))}
       </div>
       <div style={{height:14}}/>
-
       {editingProd&&<ModalProd prod={p}
         onClose={()=>setEditingProd(false)}
         onSave={async(data)=>{await apiFetch.put(`/products/${p.id}`,data);setP(prev=>({...prev,...data}));setEditingProd(false);onRefresh();showToast("Producto actualizado ✓")}}
@@ -497,9 +499,12 @@ function ModalInsumo({item,onClose,onSave,onDelete}){
 // ──────── VENTAS ─────────────────────────────────────────────
 function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
   const [showModal,setShowModal]=useState(false);
-  const [filtro,setFiltro]=useState("todas"); // todas | fiado | pagado
-  const totV=ventas.reduce((s,v)=>s+(v.tot||0)+(v.delivery||0),0);
-  const totFiado=ventas.filter(v=>v.pago==="fiado"&&!v.cobrado).reduce((s,v)=>s+(v.tot||0)+(v.delivery||0),0);
+  const [filtro,setFiltro]=useState("todas");
+  const [expandida,setExpandida]=useState(null); // id de venta expandida
+
+  // FIX: usar ventaTotalReal en todos los cálculos
+  const totV=ventas.reduce((s,v)=>s+ventaTotalReal(v),0);
+  const totFiado=ventas.filter(v=>v.pago==="fiado"&&!v.cobrado).reduce((s,v)=>s+ventaTotalReal(v),0);
 
   async function delVenta(id){if(!confirm("¿Borrar esta venta?"))return;await apiFetch.del(`/ventas/${id}`);onRefresh();showToast("Eliminado")}
   async function marcarCobrado(v){await apiFetch.put(`/ventas/${v.id}`,{...v,cobrado:true});onRefresh();showToast("Marcado como cobrado ✓")}
@@ -523,7 +528,6 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
           </div>
           <button onClick={()=>setShowModal(true)} style={{padding:"7px 14px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Nueva</button>
         </div>
-        {/* Filtros */}
         <div style={{display:"flex",gap:6,marginTop:10}}>
           {[["todas","Todas"],["fiado","Fiado ⚠️"],["pagado","Pagado ✓"]].map(([k,l])=>(
             <button key={k} onClick={()=>setFiltro(k)} style={{padding:"5px 12px",borderRadius:30,border:`1.5px solid ${filtro===k?"#1565c0":"#c4d4e8"}`,background:filtro===k?"#1565c0":"transparent",color:filtro===k?"#fff":"#4a5d7a",fontSize:12,fontWeight:600,cursor:"pointer"}}>{l}</button>
@@ -534,12 +538,14 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
       {ventasFiltradas.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#8a9ab8",fontSize:14}}>Sin ventas en esta categoría.</div>}
       <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
         {[...ventasFiltradas].reverse().map(v=>{
-          const p=products.find(x=>String(x.id)===String(v.pid)||String(x.id)===String(v.productId));
-          const cl=CL[p?.col||"blue"]||CL.blue;
           const esFiado=v.pago==="fiado";
           const cobrado=v.cobrado;
           const borderColor=esFiado&&!cobrado?"#c0392b":"#dce6f0";
-          const totalConDelivery=(v.tot||0)+(v.delivery||0);
+          const totalReal=ventaTotalReal(v);
+          // Soporte multi-producto (items) y venta simple legacy (pid)
+          const esMulti=v.items&&Array.isArray(v.items)&&v.items.length>0;
+          const estaExpandida=expandida===v.id;
+
           return(
             <div key={v.id} style={{background:"#fff",border:`1.5px solid ${borderColor}`,borderRadius:12,padding:"12px 14px",boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
               {/* Header */}
@@ -549,21 +555,63 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
               </div>
               {/* Tags */}
               <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-                <span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:cl.bg,color:cl.t}}>{p?.ico||p?.emoji||""} {v.pn||p?.n||p?.name||"—"}</span>
-                <span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#e3f0ff",color:"#1565c0"}}>{v.lt||v.litros||0}L</span>
-                {/* Estado de pago */}
+                {esMulti ? (
+                  // Venta multi-producto: mostrar cantidad de productos
+                  <span
+                    onClick={()=>setExpandida(estaExpandida?null:v.id)}
+                    style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#e3f0ff",color:"#1565c0",cursor:"pointer",userSelect:"none"}}
+                  >
+                    {v.items.length} producto{v.items.length>1?"s":""} {estaExpandida?"▲":"▼"}
+                  </span>
+                ) : (
+                  // Venta simple legacy
+                  (() => {
+                    const p=products.find(x=>String(x.id)===String(v.pid)||String(x.id)===String(v.productId));
+                    const cl=CL[p?.col||"blue"]||CL.blue;
+                    return(<>
+                      <span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:cl.bg,color:cl.t}}>{p?.ico||p?.emoji||""} {v.pn||p?.n||p?.name||"—"}</span>
+                      <span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#e3f0ff",color:"#1565c0"}}>{v.lt||v.litros||0}L</span>
+                    </>);
+                  })()
+                )}
                 <span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:700,background:esFiado&&!cobrado?"#fdf0ef":cobrado?"#e8f7ef":"#e8f7ef",color:esFiado&&!cobrado?"#c0392b":"#1b7a4a"}}>
                   {esFiado&&!cobrado?"⚠️ Fiado":cobrado?"✓ Cobrado":"✓ Pagado"}
                 </span>
-                {/* Delivery */}
-                {v.delivery>0&&<span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#fef3e2",color:"#b45309"}}>🛵 Delivery S/{f2(v.delivery)}</span>}
+                {v.delivery>0&&<span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#fef3e2",color:"#b45309"}}>🛵 S/{f2(v.delivery)}</span>}
                 {v.nt&&<span style={{padding:"2px 8px",borderRadius:30,fontSize:11,fontWeight:600,background:"#e5edf7",color:"#4a5d7a"}}>{v.nt}</span>}
               </div>
+
+              {/* Detalle expandido multi-producto */}
+              {esMulti&&estaExpandida&&(
+                <div style={{background:"#f8fbff",border:"1px solid #e3f0ff",borderRadius:8,padding:"8px 10px",marginBottom:8}}>
+                  {v.items.map((it,idx)=>{
+                    const p=products.find(x=>String(x.id)===String(it.pid));
+                    const cl=CL[p?.col||"blue"]||CL.blue;
+                    return(
+                      <div key={idx} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0",borderBottom:idx<v.items.length-1?"1px solid #e3f0ff":"none"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <span style={{padding:"1px 7px",borderRadius:20,fontSize:11,fontWeight:600,background:cl.bg,color:cl.t}}>{p?.ico||"🧴"} {it.pn||p?.n||p?.name||"—"}</span>
+                          <span style={{fontSize:11,color:"#4a5d7a"}}>{it.lt}L × S/{f2(it.pr)}</span>
+                        </div>
+                        <span style={{fontSize:12,fontWeight:700,fontFamily:"monospace",color:"#1b7a4a"}}>S/{f2((it.lt||0)*(it.pr||0))}</span>
+                      </div>
+                    );
+                  })}
+                  {v.delivery>0&&(
+                    <div style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderTop:"1px solid #e3f0ff",marginTop:2}}>
+                      <span style={{fontSize:11,color:"#b45309"}}>🛵 Delivery</span>
+                      <span style={{fontSize:12,fontWeight:700,fontFamily:"monospace",color:"#b45309"}}>S/{f2(v.delivery)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Footer */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style={{fontSize:12,color:"#4a5d7a",fontFamily:"monospace"}}>S/{f2(v.pr||v.precio||0)}/L</span>
+                {!esMulti&&<span style={{fontSize:12,color:"#4a5d7a",fontFamily:"monospace"}}>S/{f2(v.pr||v.precio||0)}/L</span>}
+                {esMulti&&<span style={{fontSize:12,color:"#4a5d7a"}}>{v.items.length} productos</span>}
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:16,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalConDelivery)}</span>
+                  <span style={{fontSize:16,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalReal)}</span>
                   {esFiado&&!cobrado&&<button onClick={()=>marcarCobrado(v)} style={{padding:"4px 10px",border:"1.5px solid #1b7a4a",borderRadius:30,background:"#e8f7ef",color:"#1b7a4a",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cobrar</button>}
                   <button onClick={()=>delVenta(v.id)} style={{padding:"4px 10px",border:"1.5px solid #c0392b",borderRadius:30,background:"transparent",color:"#c0392b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Borrar</button>
                 </div>
@@ -575,60 +623,103 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
       {showModal&&<ModalVenta products={products} stockProductos={stockProductos} onClose={()=>setShowModal(false)}
         onSave={async d=>{
           await apiFetch.post("/ventas",d);
-          // Descontar del stock si hay stock registrado
-          if(d.pid){
-            const sp=stockProductos.find(s=>String(s.prodId)===String(d.pid));
+          // Descontar del stock por cada item
+          for(const it of (d.items||[])){
+            const sp=stockProductos.find(s=>String(s.prodId)===String(it.pid));
             if(sp){
-              const nuevoLitros=Math.max(0,(sp.litros||0)-(d.lt||0));
+              const nuevoLitros=Math.max(0,(sp.litros||0)-(it.lt||0));
               await apiFetch.put(`/stock/${sp.id}`,{...sp,litros:nuevoLitros});
             }
           }
-          setShowModal(false);onRefresh();showToast(`Venta S/${f2((d.tot||0)+(d.delivery||0))} registrada ✓`);
+          setShowModal(false);onRefresh();showToast(`Venta S/${f2(d.items.reduce((s,it)=>s+(it.lt||0)*(it.pr||0),0)+(d.delivery||0))} registrada ✓`);
         }}/>}
     </div>
   );
 }
 
+// ──────── MODAL VENTA MULTI-PRODUCTO ─────────────────────────
 function ModalVenta({products,stockProductos,onClose,onSave}){
   const [cli,setCli]=useState("");
-  const [pid,setPid]=useState(String(products[0]?.id||""));
-  const [lt,setLt]=useState("");
-  const [pr,setPr]=useState(products[0]?.pv||"");
-  const [nt,setNt]=useState("");
-  const [pago,setPago]=useState("pagado"); // pagado | fiado
+  const [pago,setPago]=useState("pagado");
   const [delivery,setDelivery]=useState(0);
-  const tot=(parseFloat(lt)||0)*(parseFloat(pr)||0);
-  const totalFinal=tot+(parseFloat(delivery)||0);
+  const [nt,setNt]=useState("");
+  // Lista de items: [{pid, pn, lt, pr}]
+  const [items,setItems]=useState([{pid:String(products[0]?.id||""),pn:products[0]?.n||products[0]?.name||"",lt:"",pr:products[0]?.pv||""}]);
 
-  function handleProd(v){setPid(v);const p=products.find(x=>String(x.id)===String(v));if(p)setPr(p.pv||0)}
+  function setItem(i,field,val){
+    setItems(prev=>prev.map((it,idx)=>{
+      if(idx!==i)return it;
+      if(field==="pid"){
+        const p=products.find(x=>String(x.id)===String(val));
+        return{...it,pid:val,pn:p?.n||p?.name||"",pr:p?.pv||""};
+      }
+      return{...it,[field]:val};
+    }));
+  }
+  function addItem(){
+    const p=products[0];
+    setItems(prev=>[...prev,{pid:String(p?.id||""),pn:p?.n||p?.name||"",lt:"",pr:p?.pv||""}]);
+  }
+  function removeItem(i){if(items.length===1)return;setItems(prev=>prev.filter((_,idx)=>idx!==i))}
 
-  const stockDisp=stockProductos.find(s=>String(s.prodId)===String(pid));
+  const subtotal=items.reduce((s,it)=>(s+(parseFloat(it.lt)||0)*(parseFloat(it.pr)||0)),0);
+  const totalFinal=subtotal+(parseFloat(delivery)||0);
 
   function save(){
     if(!cli.trim())return alert("Ingresa el cliente");
-    if(!parseFloat(lt))return alert("Ingresa litros vendidos");
-    if(stockDisp&&parseFloat(lt)>(stockDisp.litros||0)){if(!confirm(`Solo hay ${stockDisp.litros}L en stock. ¿Continuar de todas formas?`))return}
-    const p=products.find(x=>String(x.id)===String(pid));
-    onSave({cli,pid,pn:p?.n||p?.name||"—",lt:parseFloat(lt),pr:parseFloat(pr)||0,tot,delivery:parseFloat(delivery)||0,pago,cobrado:pago==="pagado",nt,ts:Date.now()});
+    for(const it of items){
+      if(!parseFloat(it.lt))return alert("Ingresa litros en todos los productos");
+    }
+    const itemsFinal=items.map(it=>{
+      const p=products.find(x=>String(x.id)===String(it.pid));
+      return{pid:it.pid,pn:it.pn||p?.n||p?.name||"—",lt:parseFloat(it.lt),pr:parseFloat(it.pr)||0};
+    });
+    onSave({cli,items:itemsFinal,delivery:parseFloat(delivery)||0,pago,cobrado:pago==="pagado",nt,ts:Date.now()});
   }
 
   return(
     <ModalShell title="Registrar venta" onClose={onClose}>
-      <Field label="Cliente"><input value={cli} onChange={e=>setCli(e.target.value)} placeholder="Nombre del cliente" style={IS}/></Field>
-      <Field label="Producto">
-        <select value={pid} onChange={e=>handleProd(e.target.value)} style={IS}>
-          {products.map(p=><option key={p.id} value={String(p.id)}>{p.ico||p.emoji||"🧴"} {p.n||p.name}</option>)}
-        </select>
+      <Field label="Cliente">
+        <input value={cli} onChange={e=>setCli(e.target.value)} placeholder="Nombre del cliente" style={IS}/>
       </Field>
-      {/* Stock disponible */}
-      {stockDisp&&<div style={{background:"#e0f5f5",border:"1.5px solid #0d7377",borderRadius:8,padding:"8px 12px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:12,color:"#0d7377",fontWeight:700}}>Stock disponible</span>
-        <span style={{fontSize:16,fontWeight:800,color:"#0d7377",fontFamily:"monospace"}}>{stockDisp.litros}L</span>
-      </div>}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
-        <Field label="Litros vendidos"><input type="number" value={lt} onChange={e=>setLt(e.target.value)} placeholder="1" inputMode="decimal" style={IS}/></Field>
-        <Field label="Precio / litro (S/)"><input type="number" value={pr} onChange={e=>setPr(e.target.value)} placeholder="10" inputMode="decimal" style={IS}/></Field>
+
+      {/* Items */}
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#4a5d7a",textTransform:"uppercase",letterSpacing:".05em",marginBottom:6}}>Productos</div>
+        {items.map((it,i)=>{
+          const stockDisp=stockProductos.find(s=>String(s.prodId)===String(it.pid));
+          return(
+            <div key={i} style={{background:"#f8fbff",border:"1.5px solid #e3f0ff",borderRadius:10,padding:"10px",marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                <select value={it.pid} onChange={e=>setItem(i,"pid",e.target.value)} style={{...IS,marginBottom:0,flex:1}}>
+                  {products.map(p=><option key={p.id} value={String(p.id)}>{p.ico||p.emoji||"🧴"} {p.n||p.name}</option>)}
+                </select>
+                {items.length>1&&<button onClick={()=>removeItem(i)} style={{width:30,height:30,borderRadius:8,border:"1.5px solid #f5c6c2",background:"#fdf0ef",color:"#c0392b",cursor:"pointer",fontSize:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>}
+              </div>
+              {stockDisp&&<div style={{fontSize:11,color:"#0d7377",fontWeight:700,marginBottom:6}}>📦 Stock disponible: {stockDisp.litros}L</div>}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div>
+                  <div style={{fontSize:10,color:"#4a5d7a",fontWeight:700,marginBottom:3}}>LITROS</div>
+                  <input type="number" value={it.lt} onChange={e=>setItem(i,"lt",e.target.value)} placeholder="0" inputMode="decimal" style={IS}/>
+                </div>
+                <div>
+                  <div style={{fontSize:10,color:"#4a5d7a",fontWeight:700,marginBottom:3}}>S/ POR LITRO</div>
+                  <input type="number" value={it.pr} onChange={e=>setItem(i,"pr",e.target.value)} placeholder="0" inputMode="decimal" style={IS}/>
+                </div>
+              </div>
+              {parseFloat(it.lt)>0&&parseFloat(it.pr)>0&&(
+                <div style={{textAlign:"right",fontSize:12,color:"#1b7a4a",fontWeight:700,marginTop:4}}>
+                  = S/{f2((parseFloat(it.lt)||0)*(parseFloat(it.pr)||0))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <button onClick={addItem} style={{width:"100%",padding:"8px",background:"transparent",border:"1.5px dashed #c4d4e8",borderRadius:8,color:"#1565c0",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+          + Agregar otro producto
+        </button>
       </div>
+
       {/* Tipo de pago */}
       <Field label="Tipo de pago">
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -637,19 +728,23 @@ function ModalVenta({products,stockProductos,onClose,onSave}){
           ))}
         </div>
       </Field>
-      {/* Delivery */}
+
       <Field label="Delivery adicional (S/)">
         <input type="number" value={delivery} onChange={e=>setDelivery(e.target.value)} placeholder="0" inputMode="decimal" min="0" style={IS}/>
       </Field>
-      <Field label="Notas"><input value={nt} onChange={e=>setNt(e.target.value)} placeholder="Opcional" style={IS}/></Field>
+      <Field label="Notas">
+        <input value={nt} onChange={e=>setNt(e.target.value)} placeholder="Opcional" style={IS}/>
+      </Field>
+
       {/* Preview total */}
-      {parseFloat(lt)>0&&parseFloat(pr)>0&&(
+      {subtotal>0&&(
         <div style={{background:pago==="fiado"?"#fdf0ef":"#e8f7ef",border:`1.5px solid ${pago==="fiado"?"#c0392b":"#1b7a4a"}`,borderRadius:8,padding:"10px 12px",marginBottom:10}}>
           <div style={{fontSize:10,color:pago==="fiado"?"#c0392b":"#1b7a4a",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{pago==="fiado"?"Total a fiar":"Total a cobrar"}</div>
           <div style={{fontSize:26,fontWeight:800,color:pago==="fiado"?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalFinal)}</div>
           {parseFloat(delivery)>0&&<div style={{fontSize:11,color:"#b45309",marginTop:2}}>Incluye delivery S/{f2(delivery)}</div>}
         </div>
       )}
+
       <BtnPrimary onClick={save} color={pago==="fiado"?"#c0392b":"#1565c0"}>
         {pago==="fiado"?"Registrar como fiado":"Registrar venta"}
       </BtnPrimary>
@@ -658,7 +753,7 @@ function ModalVenta({products,stockProductos,onClose,onSave}){
   );
 }
 
-// ──────── PROVEEDORES / COMPRAS (simplificado) ────────────────
+// ──────── PROVEEDORES / COMPRAS ───────────────────────────────
 function PgProveedores({proveedores,compras,onAddProv,onEditProv,onDelProv,showToast}){
   const totC=compras.reduce((s,c)=>s+montoEnSoles(c),0);
   return(
@@ -704,7 +799,12 @@ export default function App(){
 
   const loadAll=useCallback(async()=>{
     try{
-      const [p,i,v,s]=await Promise.all([apiFetch.get("/products"),apiFetch.get("/inventario"),apiFetch.get("/ventas"),apiFetch.get("/stock")]);
+      const [p,i,v,s]=await Promise.all([
+        apiFetch.get("/products").catch(()=>[]),
+        apiFetch.get("/inventario").catch(()=>[]),
+        apiFetch.get("/ventas").catch(()=>[]),
+        apiFetch.get("/stock").catch(()=>[]),
+      ]);
       setProducts(Array.isArray(p)?p:[]);
       setVentas(Array.isArray(v)?v:[]);
       setStockProductos(Array.isArray(s)?s:[]);
