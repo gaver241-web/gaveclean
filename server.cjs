@@ -214,3 +214,25 @@ connectDB().then(() => {
   console.error("❌ Error conectando a MongoDB:", err);
   process.exit(1);
 });
+// ── STOCK DE PRODUCTOS ──────────────────────────────────────
+app.get("/api/stock", async (req, res) => {
+  try {
+    const data = await db.collection("stock").find({}).toArray();
+    res.json(data.map(d => { const i={...d}; if(!i.id)i.id=d._id.toString(); delete i._id; return i; }));
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+app.post("/api/stock", async (req, res) => {
+  const item = { id: Date.now(), ...req.body };
+  await db.collection("stock").insertOne(item);
+  res.json(item);
+});
+app.put("/api/stock/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  await db.collection("stock").updateOne({ id }, { $set: req.body });
+  res.json({ ok: true });
+});
+app.delete("/api/stock/:id", async (req, res) => {
+  const id = parseInt(req.params.id);
+  await db.collection("stock").deleteOne({ id });
+  res.json({ ok: true });
+});
