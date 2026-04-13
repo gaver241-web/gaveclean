@@ -188,28 +188,6 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
         {stockProductos.length===0&&<div style={{textAlign:"center",padding:"16px",color:"#8a9ab8",fontSize:13}}>Sin stock registrado. Ve a "Ver stock" para agregar.</div>}
       </div>
 
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px 8px"}}>
-        <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase"}}>Fórmulas</div>
-        <button onClick={onNewProd} style={{padding:"7px 14px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Nuevo</button>
-      </div>
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
-        {products.map(p=>{
-          const{cpl,gl,mrg}=calcProd(p,insumos);
-          const cl=CL[p.col||"blue"]||CL.blue,pos=gl>=0;
-          return(
-            <div key={p.id} onClick={()=>{setCurProd(p);setPage("formula");}} style={{background:"#fff",border:"1px solid #dce6f0",borderRadius:12,padding:13,display:"flex",alignItems:"center",gap:11,cursor:"pointer",boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
-              <div style={{width:44,height:44,borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0,background:cl.bg}}>{p.ico||p.emoji||"🧴"}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:15,fontWeight:700}}>{p.n||p.name}</div>
-                <div style={{fontSize:11,color:"#4a5d7a",marginTop:2,fontFamily:"monospace"}}>Costo S/{f2(cpl)}/L · Venta S/{f2(p.pv||0)}/L</div>
-              </div>
-              <span style={{padding:"3px 9px",borderRadius:30,fontSize:11,fontWeight:700,background:pos?"#e8f7ef":"#fdf0ef",color:pos?"#1b7a4a":"#c0392b",fontFamily:"monospace"}}>{pos?"+":""}{mrg.toFixed(0)}%</span>
-              <span style={{color:"#8a9ab8",fontSize:18}}>›</span>
-            </div>
-          );
-        })}
-        {products.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#8a9ab8",fontSize:14}}>Sin productos aún.<br/>Toca "+ Nuevo" para crear.</div>}
-      </div>
     </div>
   );
 }
@@ -507,7 +485,7 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
   const totFiado=ventas.filter(v=>v.pago==="fiado"&&!v.cobrado).reduce((s,v)=>s+ventaTotalReal(v),0);
 
   async function delVenta(id){if(!confirm("¿Borrar esta venta?"))return;await apiFetch.del(`/ventas/${id}`);onRefresh();showToast("Eliminado")}
-  async function marcarCobrado(v){await apiFetch.put(`/ventas/${v.id}`,{...v,cobrado:true});onRefresh();showToast("Marcado como cobrado ✓")}
+  async function marcarCobrado(v){await apiFetch.put(`/ventas/${v.id}`,{cobrado:true,pago:"pagado"});onRefresh();showToast("Cobrado ✓")}
 
   const ventasFiltradas=ventas.filter(v=>{
     if(filtro==="fiado")return v.pago==="fiado"&&!v.cobrado;
@@ -753,6 +731,128 @@ function ModalVenta({products,stockProductos,onClose,onSave}){
   );
 }
 
+
+// ──────── BALANCE ─────────────────────────────────────────────
+function PgBalance({ventas,products}){
+  const hoy=new Date();
+  const hoyStr=hoy.toLocaleDateString("es-PE",{day:"2-digit",month:"short",year:"2-digit"});
+
+  // Agrupar ventas por día
+  const porDia={};
+  ventas.forEach(v=>{
+    const d=new Date(v.ts||v.id);
+    const key=d.toLocaleDateString("es-PE",{day:"2-digit",month:"short",year:"2-digit"});
+    if(!porDia[key])porDia[key]={fecha:key,total:0,ventas:0,ts:v.ts||v.id};
+    porDia[key].total+=ventaTotalReal(v);
+    porDia[key].ventas+=1;
+  });
+  const diasOrdenados=Object.values(porDia).sort((a,b)=>b.ts-a.ts);
+
+  // Total general solo de ventas cobradas/pagadas
+  const totCobrado=ventas.filter(v=>v.pago==="pagado"||v.cobrado).reduce((s,v)=>s+ventaTotalReal(v),0);
+  const totFiado=ventas.filter(v=>v.pago==="fiado"&&!v.cobrado).reduce((s,v)=>s+ventaTotalReal(v),0);
+  const totGeneral=ventas.reduce((s,v)=>s+ventaTotalReal(v),0);
+
+  // Productos más vendidos
+  const contProd={};
+  ventas.forEach(v=>{
+    (v.items||[]).forEach(it=>{
+      const key=it.pn||it.pid;
+      if(!contProd[key])contProd[key]={nombre:it.pn||"—",litros:0,ingresos:0};
+      contProd[key].litros+=(it.lt||0);
+      contProd[key].ingresos+=(it.lt||0)*(it.pr||0);
+    });
+    if(v.pid&&!v.items){
+      const p=products.find(x=>String(x.id)===String(v.pid));
+      const key=v.pn||v.pid;
+      if(!contProd[key])contProd[key]={nombre:v.pn||p?.n||"—",litros:0,ingresos:0};
+      contProd[key].litros+=(v.lt||v.litros||0);
+      contProd[key].ingresos+=(v.lt||0)*(v.pr||0);
+    }
+  });
+  const topProds=Object.values(contProd).sort((a,b)=>b.litros-a.litros).slice(0,5);
+
+  // Clientes frecuentes
+  const contCli={};
+  ventas.forEach(v=>{
+    const cli=v.cli||v.cliente||"—";
+    if(!contCli[cli])contCli[cli]={nombre:cli,compras:0,total:0};
+    contCli[cli].compras+=1;
+    contCli[cli].total+=ventaTotalReal(v);
+  });
+  const topCli=Object.values(contCli).sort((a,b)=>b.compras-a.compras).slice(0,5);
+
+  return(
+    <div style={{paddingBottom:76}}>
+      <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
+        <div style={{fontSize:20,fontWeight:800}}>Balance</div>
+        <div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>{ventas.length} ventas registradas</div>
+      </div>
+
+      {/* Resumen total */}
+      <div style={{padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+        {[
+          {lbl:"Total general",val:`S/${f2(totGeneral)}`,c:"#1565c0",bg:"#e3f0ff"},
+          {lbl:"Cobrado",val:`S/${f2(totCobrado)}`,c:"#1b7a4a",bg:"#e8f7ef"},
+          {lbl:"Fiado pendiente",val:`S/${f2(totFiado)}`,c:"#c0392b",bg:"#fdf0ef"},
+        ].map(({lbl,val,c,bg})=>(
+          <div key={lbl} style={{background:bg,borderRadius:10,padding:"10px 8px",textAlign:"center"}}>
+            <div style={{fontSize:13,fontWeight:800,fontFamily:"monospace",color:c}}>{val}</div>
+            <div style={{fontSize:9,color:c,fontWeight:700,textTransform:"uppercase",marginTop:2,opacity:.8}}>{lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Ventas por día */}
+      <div style={{padding:"0 16px 8px"}}>
+        <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Ventas por día</div>
+        {diasOrdenados.length===0&&<div style={{textAlign:"center",padding:"20px",color:"#8a9ab8",fontSize:13}}>Sin ventas aún.</div>}
+        {diasOrdenados.map(d=>(
+          <div key={d.fecha} style={{background:"#fff",border:"1px solid #dce6f0",borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:d.fecha===hoyStr?"#1565c0":"#1a2540"}}>{d.fecha===hoyStr?"Hoy":d.fecha}</div>
+              <div style={{fontSize:11,color:"#8a9ab8"}}>{d.ventas} venta{d.ventas!==1?"s":""}</div>
+            </div>
+            <div style={{fontSize:16,fontWeight:800,fontFamily:"monospace",color:"#1b7a4a"}}>S/{f2(d.total)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Productos más vendidos */}
+      <div style={{padding:"0 16px 8px"}}>
+        <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Productos más vendidos</div>
+        {topProds.length===0&&<div style={{textAlign:"center",padding:"16px",color:"#8a9ab8",fontSize:13}}>Sin datos.</div>}
+        {topProds.map((p,i)=>(
+          <div key={p.nombre} style={{background:"#fff",border:"1px solid #dce6f0",borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:"#e3f0ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#1565c0",flexShrink:0}}>#{i+1}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>{p.nombre}</div>
+              <div style={{fontSize:11,color:"#8a9ab8"}}>{p.litros.toFixed(1)}L vendidos</div>
+            </div>
+            <div style={{fontSize:14,fontWeight:800,fontFamily:"monospace",color:"#1b7a4a"}}>S/{f2(p.ingresos)}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Clientes frecuentes */}
+      <div style={{padding:"0 16px 8px"}}>
+        <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase",marginBottom:8}}>Clientes frecuentes</div>
+        {topCli.length===0&&<div style={{textAlign:"center",padding:"16px",color:"#8a9ab8",fontSize:13}}>Sin datos.</div>}
+        {topCli.map((c,i)=>(
+          <div key={c.nombre} style={{background:"#fff",border:"1px solid #dce6f0",borderRadius:10,padding:"10px 14px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:"#f3e8ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#6b21a8",flexShrink:0}}>#{i+1}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700}}>{c.nombre}</div>
+              <div style={{fontSize:11,color:"#8a9ab8"}}>{c.compras} compra{c.compras!==1?"s":""}</div>
+            </div>
+            <div style={{fontSize:14,fontWeight:800,fontFamily:"monospace",color:"#1b7a4a"}}>S/{f2(c.total)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ──────── PROVEEDORES / COMPRAS ───────────────────────────────
 function PgProveedores({proveedores,compras,onAddProv,onEditProv,onDelProv,showToast}){
   const totC=compras.reduce((s,c)=>s+montoEnSoles(c),0);
@@ -825,6 +925,7 @@ export default function App(){
     {id:"stock",label:"Stock",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>},
     {id:"inventario",label:"Insumos",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>},
     {id:"ventas",label:"Ventas",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>},
+    {id:"balance",label:"Balance",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
     {id:"proveedores",label:"Proveed.",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   ];
 
@@ -835,6 +936,7 @@ export default function App(){
       {page==="formula"&&curProd&&<PgFormula prod={curProd} insumos={insumos} onBack={()=>{setPage("inicio");setCurProd(null);loadAll()}} onRefresh={loadAll} showToast={showToast}/>}
       {page==="inventario"&&<PgInventario insumos={insumos} onRefresh={loadAll} showToast={showToast}/>}
       {page==="ventas"&&<PgVentas ventas={ventas} products={products} stockProductos={stockProductos} onRefresh={loadAll} showToast={showToast}/>}
+      {page==="balance"&&<PgBalance ventas={ventas} products={products}/>}
       {page==="proveedores"&&<PgProveedores proveedores={proveedores} compras={compras} onAddProv={d=>setProveedores(p=>[...p,{...d,id:`prov${Date.now()}`}])} onEditProv={(id,d)=>setProveedores(p=>p.map(x=>x.id===id?{...x,...d}:x))} onDelProv={id=>setProveedores(p=>p.filter(x=>x.id!==id))} showToast={showToast}/>}
 
       {page!=="formula"&&(
