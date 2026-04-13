@@ -478,7 +478,8 @@ function ModalInsumo({item,onClose,onSave,onDelete}){
 function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
   const [showModal,setShowModal]=useState(false);
   const [filtro,setFiltro]=useState("todas");
-  const [expandida,setExpandida]=useState(null); // id de venta expandida
+  const [expandida,setExpandida]=useState(null);
+  const [editando,setEditando]=useState(null); // venta siendo editada
 
   // FIX: usar ventaTotalReal en todos los cálculos
   const totV=ventas.reduce((s,v)=>s+ventaTotalReal(v),0);
@@ -591,6 +592,7 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:16,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalReal)}</span>
                   {esFiado&&!cobrado&&<button onClick={()=>marcarCobrado(v)} style={{padding:"4px 10px",border:"1.5px solid #1b7a4a",borderRadius:30,background:"#e8f7ef",color:"#1b7a4a",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cobrar</button>}
+                  <button onClick={()=>setEditando(v)} style={{padding:"4px 10px",border:"1.5px solid #1565c0",borderRadius:30,background:"#e3f0ff",color:"#1565c0",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                   <button onClick={()=>delVenta(v.id)} style={{padding:"4px 10px",border:"1.5px solid #c0392b",borderRadius:30,background:"transparent",color:"#c0392b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Borrar</button>
                 </div>
               </div>
@@ -601,15 +603,16 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
       {showModal&&<ModalVenta products={products} stockProductos={stockProductos} onClose={()=>setShowModal(false)}
         onSave={async d=>{
           await apiFetch.post("/ventas",d);
-          // Descontar del stock por cada item
           for(const it of (d.items||[])){
             const sp=stockProductos.find(s=>String(s.prodId)===String(it.pid));
-            if(sp){
-              const nuevoLitros=Math.max(0,(sp.litros||0)-(it.lt||0));
-              await apiFetch.put(`/stock/${sp.id}`,{...sp,litros:nuevoLitros});
-            }
+            if(sp){const nuevoLitros=Math.max(0,(sp.litros||0)-(it.lt||0));await apiFetch.put(`/stock/${sp.id}`,{...sp,litros:nuevoLitros});}
           }
-          setShowModal(false);onRefresh();showToast(`Venta S/${f2(d.items.reduce((s,it)=>s+(it.lt||0)*(it.pr||0),0)+(d.delivery||0))} registrada ✓`);
+          setShowModal(false);onRefresh();showToast(`Venta S/${parseFloat(d.items.reduce((s,it)=>s+(it.lt||0)*(it.pr||0),0)+(d.delivery||0)).toFixed(2)} registrada ✓`);
+        }}/>}
+      {editando&&<ModalEditarVenta venta={editando} products={products} onClose={()=>setEditando(null)}
+        onSave={async d=>{
+          await apiFetch.put(`/ventas/${editando.id}`,d);
+          setEditando(null);onRefresh();showToast("Venta actualizada ✓");
         }}/>}
     </div>
   );
@@ -880,6 +883,136 @@ function PgProveedores({proveedores,compras,onAddProv,onEditProv,onDelProv,showT
   );
 }
 
+// ──────── PÁGINA FÓRMULAS ────────────────────────────────────
+function PgFormulas({products,insumos,setPage,setCurProd,onNewProd}){
+  return(
+    <div style={{paddingBottom:76}}>
+      <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:20,fontWeight:800}}>Fórmulas</div>
+            <div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>{products.length} producto{products.length!==1?"s":""}</div>
+          </div>
+          <button onClick={onNewProd} style={{padding:"7px 14px",border:"1.5px solid #6b21a8",borderRadius:30,background:"#f3e8ff",color:"#6b21a8",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Nuevo</button>
+        </div>
+      </div>
+      <div style={{height:10}}/>
+      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
+        {products.map(p=>{
+          const{cpl,gl,mrg}=calcProd(p,insumos);
+          const cl=CL[p.col||"blue"]||CL.blue;
+          const pos=gl>=0;
+          const ingCount=(p.ings||[]).length;
+          return(
+            <div key={p.id} onClick={()=>{setCurProd(p);setPage("formula")}} style={{background:"#fff",border:"1.5px solid #dce6f0",borderRadius:12,padding:"13px 14px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
+              <div style={{width:46,height:46,borderRadius:12,background:cl.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{p.ico||p.emoji||"🧴"}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:15,fontWeight:700}}>{p.n||p.name}</div>
+                <div style={{fontSize:11,color:"#8a9ab8",marginTop:2}}>{ingCount} ingrediente{ingCount!==1?"s":""} · {p.lt||p.customLiters||1}L base</div>
+                <div style={{fontSize:11,color:"#4a5d7a",marginTop:1,fontFamily:"monospace"}}>Costo S/{parseFloat(cpl).toFixed(2)}/L · Venta S/{parseFloat(p.pv||0).toFixed(2)}/L</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <span style={{padding:"3px 9px",borderRadius:30,fontSize:11,fontWeight:700,background:pos?"#e8f7ef":"#fdf0ef",color:pos?"#1b7a4a":"#c0392b",fontFamily:"monospace"}}>{pos?"+":""}{mrg.toFixed(0)}%</span>
+                <span style={{color:"#8a9ab8",fontSize:16}}>›</span>
+              </div>
+            </div>
+          );
+        })}
+        {products.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#8a9ab8",fontSize:14}}>Sin productos.<br/>Toca "+ Nuevo" para crear una fórmula.</div>}
+      </div>
+    </div>
+  );
+}
+
+// ──────── MODAL EDITAR VENTA ──────────────────────────────────
+function ModalEditarVenta({venta,products,onClose,onSave}){
+  const [cli,setCli]=useState(venta.cli||venta.cliente||"");
+  const [pago,setPago]=useState(venta.pago||"pagado");
+  const [delivery,setDelivery]=useState(venta.delivery||0);
+  const [nt,setNt]=useState(venta.nt||"");
+  const [cobrado,setCobrado]=useState(venta.cobrado||false);
+
+  // Items: soporta multi-item y legacy
+  const initItems=venta.items&&Array.isArray(venta.items)&&venta.items.length>0
+    ? venta.items.map(it=>({pid:String(it.pid||""),pn:it.pn||"",lt:String(it.lt||""),pr:String(it.pr||"")}))
+    : [{pid:String(venta.pid||venta.productId||""),pn:venta.pn||"",lt:String(venta.lt||venta.litros||""),pr:String(venta.pr||venta.precio||"")}];
+  const [items,setItems]=useState(initItems);
+
+  function setItem(i,field,val){
+    setItems(prev=>prev.map((it,idx)=>{
+      if(idx!==i)return it;
+      if(field==="pid"){const p=products.find(x=>String(x.id)===String(val));return{...it,pid:val,pn:p?.n||p?.name||""};}
+      return{...it,[field]:val};
+    }));
+  }
+  function addItem(){const p=products[0];setItems(prev=>[...prev,{pid:String(p?.id||""),pn:p?.n||p?.name||"",lt:"",pr:String(p?.pv||"")}]);}
+  function removeItem(i){if(items.length===1)return;setItems(prev=>prev.filter((_,idx)=>idx!==i));}
+
+  const subtotal=items.reduce((s,it)=>(s+(parseFloat(it.lt)||0)*(parseFloat(it.pr)||0)),0);
+  const totalFinal=subtotal+(parseFloat(delivery)||0);
+
+  function save(){
+    if(!cli.trim())return alert("Ingresa el cliente");
+    const itemsFinal=items.map(it=>{
+      const p=products.find(x=>String(x.id)===String(it.pid));
+      return{pid:it.pid,pn:it.pn||p?.n||p?.name||"—",lt:parseFloat(it.lt)||0,pr:parseFloat(it.pr)||0};
+    });
+    const esCobrado=pago==="pagado"||cobrado;
+    onSave({...venta,cli,items:itemsFinal,delivery:parseFloat(delivery)||0,pago,cobrado:esCobrado,nt});
+  }
+
+  return(
+    <ModalShell title="✏️ Editar venta" onClose={onClose}>
+      <Field label="Cliente">
+        <input value={cli} onChange={e=>setCli(e.target.value)} placeholder="Nombre del cliente" style={IS}/>
+      </Field>
+
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#4a5d7a",textTransform:"uppercase",letterSpacing:".05em",marginBottom:6}}>Productos</div>
+        {items.map((it,i)=>(
+          <div key={i} style={{background:"#f8fbff",border:"1.5px solid #e3f0ff",borderRadius:10,padding:"10px",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+              <select value={it.pid} onChange={e=>setItem(i,"pid",e.target.value)} style={{...IS,marginBottom:0,flex:1}}>
+                {products.map(p=><option key={p.id} value={String(p.id)}>{p.ico||p.emoji||"🧴"} {p.n||p.name}</option>)}
+              </select>
+              {items.length>1&&<button onClick={()=>removeItem(i)} style={{width:30,height:30,borderRadius:8,border:"1.5px solid #f5c6c2",background:"#fdf0ef",color:"#c0392b",cursor:"pointer",fontSize:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div><div style={{fontSize:10,color:"#4a5d7a",fontWeight:700,marginBottom:3}}>LITROS</div><input type="number" value={it.lt} onChange={e=>setItem(i,"lt",e.target.value)} placeholder="0" inputMode="decimal" style={IS}/></div>
+              <div><div style={{fontSize:10,color:"#4a5d7a",fontWeight:700,marginBottom:3}}>S/ POR LITRO</div><input type="number" value={it.pr} onChange={e=>setItem(i,"pr",e.target.value)} placeholder="0" inputMode="decimal" style={IS}/></div>
+            </div>
+          </div>
+        ))}
+        <button onClick={addItem} style={{width:"100%",padding:"8px",background:"transparent",border:"1.5px dashed #c4d4e8",borderRadius:8,color:"#1565c0",fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Agregar producto</button>
+      </div>
+
+      <Field label="Tipo de pago">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {[["pagado","✓ Pagado","#1b7a4a","#e8f7ef"],["fiado","⚠️ Fiado","#c0392b","#fdf0ef"]].map(([k,l,c,bg])=>(
+            <button key={k} onClick={()=>{setPago(k);if(k==="pagado")setCobrado(true);else setCobrado(false);}} style={{padding:"10px",borderRadius:8,border:`1.5px solid ${pago===k?c:"#c4d4e8"}`,background:pago===k?bg:"transparent",color:pago===k?c:"#4a5d7a",fontSize:13,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="Delivery adicional (S/)">
+        <input type="number" value={delivery} onChange={e=>setDelivery(e.target.value)} placeholder="0" inputMode="decimal" min="0" style={IS}/>
+      </Field>
+      <Field label="Notas">
+        <input value={nt} onChange={e=>setNt(e.target.value)} placeholder="Opcional" style={IS}/>
+      </Field>
+
+      {subtotal>0&&(
+        <div style={{background:"#e8f7ef",border:"1.5px solid #1b7a4a",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+          <div style={{fontSize:10,color:"#1b7a4a",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>Total actualizado</div>
+          <div style={{fontSize:26,fontWeight:800,color:"#1b7a4a",fontFamily:"monospace"}}>S/{parseFloat(totalFinal).toFixed(2)}</div>
+        </div>
+      )}
+      <BtnPrimary onClick={save}>Guardar cambios</BtnPrimary>
+      <BtnSecondary onClick={onClose}>Cancelar</BtnSecondary>
+    </ModalShell>
+  );
+}
+
 // ──────── APP ROOT ────────────────────────────────────────────
 export default function App(){
   const [page,setPage]=useState("inicio");
@@ -922,6 +1055,7 @@ export default function App(){
 
   const NAV=[
     {id:"inicio",label:"Inicio",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>},
+    {id:"formulas",label:"Fórmulas",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/></svg>},
     {id:"stock",label:"Stock",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>},
     {id:"inventario",label:"Insumos",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>},
     {id:"ventas",label:"Ventas",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>},
@@ -932,6 +1066,7 @@ export default function App(){
   return(
     <div style={{minHeight:"100vh",background:"#f0f5fb",color:"#1a2540",fontFamily:"system-ui, sans-serif",overflowX:"hidden"}}>
       {page==="inicio"&&<PgInicio products={products} insumos={insumos} ventas={ventas} compras={compras} stockProductos={stockProductos} setPage={setPage} setCurProd={setCurProd} onNewProd={()=>setShowNewProd(true)}/>}
+      {page==="formulas"&&<PgFormulas products={products} insumos={insumos} setPage={setPage} setCurProd={setCurProd} onNewProd={()=>setShowNewProd(true)}/>}
       {page==="stock"&&<PgStock products={products} stockProductos={stockProductos} onRefresh={loadAll} showToast={showToast}/>}
       {page==="formula"&&curProd&&<PgFormula prod={curProd} insumos={insumos} onBack={()=>{setPage("inicio");setCurProd(null);loadAll()}} onRefresh={loadAll} showToast={showToast}/>}
       {page==="inventario"&&<PgInventario insumos={insumos} onRefresh={loadAll} showToast={showToast}/>}
