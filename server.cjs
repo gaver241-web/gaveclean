@@ -192,6 +192,19 @@ app.post("/api/ventas", async (req, res) => {
   res.json(item);
 });
 
+app.put("/api/ventas/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.collection("ventas").updateOne(
+      { id },
+      { $set: req.body }
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete("/api/ventas/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   await db.collection("ventas").deleteOne({ id });
