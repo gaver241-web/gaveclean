@@ -474,6 +474,103 @@ function ModalInsumo({item,onClose,onSave,onDelete}){
   );
 }
 
+
+// ──────── COMPROBANTE ────────────────────────────────────────
+async function generarYCompartirComprobante(venta, products) {
+  // Crear div temporal con el comprobante
+  const div = document.createElement("div");
+  div.style.cssText = "position:fixed;left:-9999px;top:0;width:380px;background:#fff;font-family:system-ui,sans-serif;padding:24px;box-sizing:border-box;";
+  
+  const fecha = new Date(venta.ts || venta.id).toLocaleDateString("es-PE", {day:"2-digit",month:"long",year:"numeric"});
+  const totalReal = ventaTotalReal(venta);
+  
+  // Construir items HTML
+  let itemsHtml = "";
+  if (venta.items && venta.items.length > 0) {
+    venta.items.forEach(it => {
+      const subtotal = (it.lt||0)*(it.pr||0);
+      itemsHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+        <div><div style="font-weight:600;">${it.pn||"—"}</div><div style="color:#888;font-size:11px;">${it.lt}L × S/${parseFloat(it.pr).toFixed(2)}</div></div>
+        <div style="font-weight:700;color:#1565c0;">S/${subtotal.toFixed(2)}</div>
+      </div>`;
+    });
+  } else {
+    const p = products.find(x => String(x.id) === String(venta.pid));
+    itemsHtml = `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+      <div><div style="font-weight:600;">${venta.pn||p?.n||"—"}</div><div style="color:#888;font-size:11px;">${venta.lt||0}L × S/${parseFloat(venta.pr||0).toFixed(2)}</div></div>
+      <div style="font-weight:700;color:#1565c0;">S/${((venta.lt||0)*(venta.pr||0)).toFixed(2)}</div>
+    </div>`;
+  }
+
+  if ((venta.delivery||0) > 0) {
+    itemsHtml += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
+      <div style="font-weight:600;">🛵 Delivery</div>
+      <div style="font-weight:700;color:#b45309;">S/${parseFloat(venta.delivery).toFixed(2)}</div>
+    </div>`;
+  }
+
+  const estadoPago = (venta.pago==="fiado"&&!venta.cobrado) ? "⚠️ FIADO PENDIENTE" : "✅ PAGADO";
+  const estadoColor = (venta.pago==="fiado"&&!venta.cobrado) ? "#c0392b" : "#1b7a4a";
+
+  div.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <img src="/logo1.png" style="height:60px;object-fit:contain;margin-bottom:8px;" crossorigin="anonymous"/>
+      <div style="font-size:18px;font-weight:800;color:#1565c0;">SIONEX</div>
+      <div style="font-size:11px;color:#888;">Productos de limpieza de calidad</div>
+      <div style="font-size:11px;color:#888;">📞 Pedidos: 925 367 306</div>
+    </div>
+    <div style="background:#f0f6ff;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+      <div style="font-size:12px;color:#4a5d7a;margin-bottom:2px;">COMPROBANTE DE VENTA</div>
+      <div style="font-size:13px;font-weight:700;">Cliente: ${venta.cli||venta.cliente||"—"}</div>
+      <div style="font-size:12px;color:#888;">Fecha: ${fecha}</div>
+    </div>
+    <div style="margin-bottom:12px;">${itemsHtml}</div>
+    <div style="background:#1565c0;color:#fff;borderRadius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;border-radius:8px;margin-bottom:12px;">
+      <span style="font-size:14px;font-weight:700;">TOTAL</span>
+      <span style="font-size:20px;font-weight:800;font-family:monospace;">S/${totalReal.toFixed(2)}</span>
+    </div>
+    <div style="text-align:center;font-size:13px;font-weight:700;color:${estadoColor};margin-bottom:12px;">${estadoPago}</div>
+    <div style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;">
+      <div style="font-size:12px;color:#888;margin-bottom:8px;">Paga por YAPE</div>
+      <img src="/yapegave.jpeg" style="width:120px;height:120px;object-fit:contain;border-radius:8px;" crossorigin="anonymous"/>
+      <div style="font-size:14px;font-weight:800;color:#1565c0;margin-top:6px;">967 018 689</div>
+      <div style="font-size:11px;color:#888;margin-top:4px;">¡Gracias por su compra! 🙌</div>
+    </div>
+  `;
+
+  document.body.appendChild(div);
+
+  try {
+    // Cargar html2canvas desde CDN
+    if (!window.html2canvas) {
+      await new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const canvas = await window.html2canvas(div, { scale: 2, useCORS: true, backgroundColor: "#fff" });
+    document.body.removeChild(div);
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], "comprobante_sionex.png", { type: "image/png" });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Comprobante SIONEX" });
+      } else {
+        // Fallback: descargar imagen
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "comprobante_sionex.png";
+        a.click(); URL.revokeObjectURL(url);
+      }
+    }, "image/png");
+  } catch(e) {
+    document.body.removeChild(div);
+    alert("Error generando comprobante: " + e.message);
+  }
+}
+
 // ──────── VENTAS ─────────────────────────────────────────────
 function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
   const [showModal,setShowModal]=useState(false);
@@ -592,6 +689,7 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <span style={{fontSize:16,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalReal)}</span>
                   {esFiado&&!cobrado&&<button onClick={()=>marcarCobrado(v)} style={{padding:"4px 10px",border:"1.5px solid #1b7a4a",borderRadius:30,background:"#e8f7ef",color:"#1b7a4a",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cobrar</button>}
+                  <button onClick={()=>generarYCompartirComprobante(v,products)} style={{padding:"4px 10px",border:"1.5px solid #6b21a8",borderRadius:30,background:"#f3e8ff",color:"#6b21a8",fontSize:11,fontWeight:700,cursor:"pointer"}}>📋 WSP</button>
                   <button onClick={()=>setEditando(v)} style={{padding:"4px 10px",border:"1.5px solid #1565c0",borderRadius:30,background:"#e3f0ff",color:"#1565c0",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                   <button onClick={()=>delVenta(v.id)} style={{padding:"4px 10px",border:"1.5px solid #c0392b",borderRadius:30,background:"transparent",color:"#c0392b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Borrar</button>
                 </div>
