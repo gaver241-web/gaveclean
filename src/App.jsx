@@ -147,8 +147,8 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
     <div style={{paddingBottom:76}}>
       <div style={{background:"linear-gradient(135deg,#1565c0,#0d47a1 55%,#1a237e)",padding:"22px 16px 18px",color:"#fff"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
-          <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>🧪</div>
-          <div><div style={{fontSize:20,fontWeight:800}}>GAVE Producción</div><div style={{fontSize:12,opacity:.75,marginTop:2}}>Control de fórmulas · inventario · ventas</div></div>
+          <img src="/logo1.png" style={{height:48,objectFit:"contain",filter:"brightness(0) invert(1)"}} />
+          <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,letterSpacing:".02em"}}>SIONEX</div><div style={{fontSize:11,opacity:.75,marginTop:2}}>Sistema de gestión · ventas · inventario</div></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6}}>
           {[[products.length,"Productos"],[`S/${f2(totV)}`,"Ventas"],[insumos.length,"Insumos"],[`S/${Math.round(totC)}`,"Compras"]].map(([v,l])=>(
