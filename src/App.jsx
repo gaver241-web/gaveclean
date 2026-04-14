@@ -532,7 +532,7 @@ async function generarYCompartirComprobante(venta, products) {
     <div style="text-align:center;font-size:13px;font-weight:700;color:${estadoColor};margin-bottom:12px;">${estadoPago}</div>
     <div style="text-align:center;border-top:1px dashed #ddd;padding-top:12px;">
       <div style="font-size:12px;color:#888;margin-bottom:8px;">Paga por YAPE</div>
-      <img src="/yapegave.jpeg" style="width:120px;height:120px;object-fit:contain;border-radius:8px;" crossorigin="anonymous"/>
+      <img src="/yapegave.jpeg" style="width:180px;height:180px;object-fit:contain;border-radius:8px;display:block;margin:0 auto;" crossorigin="anonymous"/>
       <div style="font-size:14px;font-weight:800;color:#1565c0;margin-top:6px;">967 018 689</div>
       <div style="font-size:11px;color:#888;margin-top:4px;">¡Gracias por su compra! 🙌</div>
     </div>
@@ -683,15 +683,19 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
               )}
 
               {/* Footer */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                {!esMulti&&<span style={{fontSize:12,color:"#4a5d7a",fontFamily:"monospace"}}>S/{f2(v.pr||v.precio||0)}/L</span>}
-                {esMulti&&<span style={{fontSize:12,color:"#4a5d7a"}}>{v.items.length} productos</span>}
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:16,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalReal)}</span>
-                  {esFiado&&!cobrado&&<button onClick={()=>marcarCobrado(v)} style={{padding:"4px 10px",border:"1.5px solid #1b7a4a",borderRadius:30,background:"#e8f7ef",color:"#1b7a4a",fontSize:11,fontWeight:700,cursor:"pointer"}}>Cobrar</button>}
-                  <button onClick={()=>generarYCompartirComprobante(v,products)} style={{padding:"4px 10px",border:"1.5px solid #6b21a8",borderRadius:30,background:"#f3e8ff",color:"#6b21a8",fontSize:11,fontWeight:700,cursor:"pointer"}}>📋 WSP</button>
-                  <button onClick={()=>setEditando(v)} style={{padding:"4px 10px",border:"1.5px solid #1565c0",borderRadius:30,background:"#e3f0ff",color:"#1565c0",fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
-                  <button onClick={()=>delVenta(v.id)} style={{padding:"4px 10px",border:"1.5px solid #c0392b",borderRadius:30,background:"transparent",color:"#c0392b",fontSize:11,fontWeight:700,cursor:"pointer"}}>Borrar</button>
+              <div style={{borderTop:"1px solid #f0f4f8",paddingTop:8,marginTop:4}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  {!esMulti&&<span style={{fontSize:12,color:"#4a5d7a",fontFamily:"monospace"}}>S/{f2(v.pr||v.precio||0)}/L</span>}
+                  {esMulti&&<span style={{fontSize:12,color:"#4a5d7a"}}>{v.items.length} prods</span>}
+                  <span style={{fontSize:18,fontWeight:800,color:esFiado&&!cobrado?"#c0392b":"#1b7a4a",fontFamily:"monospace"}}>S/{f2(totalReal)}</span>
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {esFiado&&!cobrado&&<button onClick={()=>marcarCobrado(v)} style={{flex:1,padding:"7px 6px",border:"1.5px solid #1b7a4a",borderRadius:20,background:"#e8f7ef",color:"#1b7a4a",fontSize:12,fontWeight:700,cursor:"pointer"}}>✓ Cobrar</button>}
+                  <button onClick={()=>generarYCompartirComprobante(v,products)} style={{flex:1,padding:"7px 6px",border:"none",borderRadius:20,background:"#25D366",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>
+                    <img src="/WhatsApp_icon.png" style={{width:16,height:16,objectFit:"contain"}} onError={e=>e.target.style.display="none"}/> Enviar
+                  </button>
+                  <button onClick={()=>setEditando(v)} style={{width:34,height:34,border:"1.5px solid #1565c0",borderRadius:20,background:"#e3f0ff",color:"#1565c0",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✏️</button>
+                  <button onClick={()=>delVenta(v.id)} style={{width:34,height:34,border:"1.5px solid #c0392b",borderRadius:20,background:"transparent",color:"#c0392b",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
                 </div>
               </div>
             </div>
