@@ -280,6 +280,9 @@ function ModalStock({item,products,onClose,onSave,onDelete}){
 function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
   const [p,setP]=useState(null);
   const [editingProd,setEditingProd]=useState(false);
+  const [editMode,setEditMode]=useState(false);
+  const [showDupModal,setShowDupModal]=useState(false);
+  const [dupName,setDupName]=useState("");
 
   useEffect(()=>{if(prod)setP({...prod,lt:prod.lt||prod.customLiters||1,pv:prod.pv||0,ings:prod.ings||[]})},[prod]);
   if(!p)return null;
@@ -292,6 +295,11 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
   async function onIns(i,sidStr){const sid=parseInt(sidStr);const s=insumos.find(x=>x.id===sid);const newIngs=p.ings.map((ing,idx)=>idx===i?{...ing,sid,env:s?.env||false}:ing);await patch({ings:newIngs})}
   async function delIng(i){await patch({ings:p.ings.filter((_,idx)=>idx!==i)})}
   async function addIng(){await patch({ings:[...p.ings,{sid:insumos[0]?.id||1,c:10,u:"g"}]})}
+  async function duplicar(){
+    if(!dupName.trim())return alert("Escribe un nombre para la copia");
+    await apiFetch.post("/products",{...p,id:undefined,n:dupName,name:dupName,ings:[...p.ings]});
+    setShowDupModal(false);setDupName("");onRefresh();showToast("Fórmula duplicada ✓");onBack();
+  }
 
   return(
     <div style={{paddingBottom:76}}>
@@ -299,15 +307,24 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
         <button onClick={onBack} style={{width:36,height:36,borderRadius:10,border:"1.5px solid #c4d4e8",background:"#e5edf7",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#4a5d7a",fontSize:20}}>‹</button>
         <span style={{fontSize:24}}>{p.ico||p.emoji||"🧴"}</span>
         <div style={{flex:1}}><div style={{fontSize:17,fontWeight:800}}>{p.n||p.name}</div><div style={{fontSize:11,color:"#4a5d7a"}}>{p.ings.length} ingredientes · {p.lt}L</div></div>
-        <button onClick={()=>setEditingProd(true)} style={{padding:"7px 14px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>⚙️</button>
+        <button onClick={()=>{setDupName((p.n||p.name)+" (copia)");setShowDupModal(true)}} style={{padding:"7px 10px",border:"1.5px solid #0d7377",borderRadius:30,background:"#e0f5f5",color:"#0d7377",fontSize:12,fontWeight:700,cursor:"pointer"}}>⎘ Duplicar</button>
+        {!editMode
+          ?<button onClick={()=>setEditMode(true)} style={{padding:"7px 14px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>✏️ Editar</button>
+          :<button onClick={()=>{setEditMode(false);setEditingProd(false)}} style={{padding:"7px 14px",border:"1.5px solid #1b7a4a",borderRadius:30,background:"#e8f7ef",color:"#1b7a4a",fontSize:12,fontWeight:700,cursor:"pointer"}}>✓ Listo</button>
+        }
+        {editMode&&<button onClick={()=>setEditingProd(true)} style={{padding:"7px 10px",border:"1.5px solid #1565c0",borderRadius:30,background:"#f0f6ff",color:"#1565c0",fontSize:12,fontWeight:700,cursor:"pointer"}}>⚙️</button>}
       </div>
+      {!editMode&&<div style={{background:"#fffbea",border:"1px solid #fde68a",padding:"8px 16px",fontSize:12,color:"#92400e",fontWeight:600,textAlign:"center"}}>🔒 Modo lectura — toca "Editar" para modificar</div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,padding:"10px 16px",background:"#f0f6ff",borderBottom:"1px solid #e3f0ff"}}>
         {[{lbl:"Litros a preparar",val:p.lt,unit:"litros totales del lote",cb:v=>patch({lt:parseFloat(v)||1,customLiters:parseFloat(v)||1})},{lbl:"Precio venta S/",val:p.pv,unit:"por litro",cb:v=>patch({pv:parseFloat(v)||0})}].map(({lbl,val,unit,cb})=>(
           <div key={lbl} style={{background:"#fff",border:"1.5px solid #e3f0ff",borderRadius:8,padding:"10px 12px"}}>
             <div style={{fontSize:10,color:"#1565c0",fontWeight:700,textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{lbl}</div>
-            <input key={val} type="number" defaultValue={val} min="0" step="0.5" inputMode="decimal"
-              onBlur={e=>cb(e.target.value)} onKeyDown={e=>e.key==="Enter"&&cb(e.target.value)}
-              style={{width:"100%",background:"transparent",border:"none",color:"#1565c0",fontFamily:"monospace",fontSize:20,fontWeight:600,outline:"none",padding:0}}/>
+            {editMode
+              ?<input key={val} type="number" defaultValue={val} min="0" step="0.5" inputMode="decimal"
+                onBlur={e=>cb(e.target.value)} onKeyDown={e=>e.key==="Enter"&&cb(e.target.value)}
+                style={{width:"100%",background:"transparent",border:"none",color:"#1565c0",fontFamily:"monospace",fontSize:20,fontWeight:600,outline:"none",padding:0}}/>
+              :<div style={{color:"#1565c0",fontFamily:"monospace",fontSize:20,fontWeight:600}}>{val}</div>
+            }
             <div style={{fontSize:10,color:"#8a9ab8",marginTop:2}}>{unit}</div>
           </div>
         ))}
@@ -328,26 +345,36 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
                   <div style={{fontSize:11,color:"#8a9ab8",marginTop:2}}>{etqCant} · <span style={{color:"#1b7a4a",fontWeight:700}}>S/{costoUso.toFixed(3)}</span></div>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
-                  {!isE?(<input key={`${i}-${p.lt}`} type="number" defaultValue={parseFloat((ing.c*p.lt*1000).toFixed(1))} step="1" min="0" inputMode="decimal"
+                  {editMode&&!isE?(<input key={`${i}-${p.lt}`} type="number" defaultValue={parseFloat((ing.c*p.lt*1000).toFixed(1))} step="1" min="0" inputMode="decimal"
                     onBlur={e=>onCant(i,(parseFloat(e.target.value)||0)/1000)} onKeyDown={e=>e.key==="Enter"&&onCant(i,(parseFloat(e.target.value)||0)/1000)}
                     style={{width:60,background:"#e5edf7",border:"1.5px solid #c4d4e8",borderRadius:6,color:"#1a2540",fontFamily:"monospace",fontSize:14,fontWeight:600,textAlign:"right",padding:"4px 5px",outline:"none"}}/>
-                  ):<span style={{fontSize:13,color:"#4a5d7a",fontFamily:"monospace"}}>1</span>}
+                  ):<span style={{fontSize:13,color:"#4a5d7a",fontFamily:"monospace"}}>{isE?"1":parseFloat((ing.c*p.lt*1000).toFixed(1))}</span>}
                   <span style={{fontSize:11,color:"#8a9ab8",minWidth:16}}>{isE?"u/lote":"g"}</span>
                 </div>
-                <button onClick={()=>delIng(i)} style={{width:28,height:28,borderRadius:6,border:"1.5px solid #dce6f0",background:"transparent",color:"#8a9ab8",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+                {editMode&&<button onClick={()=>delIng(i)} style={{width:28,height:28,borderRadius:6,border:"1.5px solid #dce6f0",background:"transparent",color:"#8a9ab8",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>}
               </div>
-              <div style={{padding:"5px 12px 9px",borderTop:"1px solid #dce6f0"}}>
+              {editMode&&<div style={{padding:"5px 12px 9px",borderTop:"1px solid #dce6f0"}}>
                 <select value={ing.sid} onChange={e=>onIns(i,e.target.value)} style={{width:"100%",background:"#e5edf7",border:"1.5px solid #c4d4e8",borderRadius:6,color:"#4a5d7a",fontSize:12,padding:"6px 7px",outline:"none"}}>
                   {insumos.map(s=><option key={s.id} value={s.id}>{s.n||s.insumo} — {s.prov||"—"}</option>)}
                 </select>
-              </div>
+              </div>}
             </div>
           );
         })}
       </div>
-      <button onClick={addIng} style={{margin:"2px 16px 6px",width:"calc(100% - 32px)",padding:11,background:"transparent",border:"1.5px dashed #c4d4e8",borderRadius:8,color:"#8a9ab8",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+      {editMode&&<button onClick={addIng} style={{margin:"2px 16px 6px",width:"calc(100% - 32px)",padding:11,background:"transparent",border:"1.5px dashed #c4d4e8",borderRadius:8,color:"#8a9ab8",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
         + Agregar insumo
-      </button>
+      </button>}
+      {showDupModal&&(
+        <ModalShell title="Duplicar fórmula" onClose={()=>setShowDupModal(false)}>
+          <div style={{fontSize:13,color:"#4a5d7a",marginBottom:12}}>Se copiará la fórmula completa de <strong>{p.n||p.name}</strong>. Solo cambia el nombre:</div>
+          <Field label="Nombre de la copia">
+            <input value={dupName} onChange={e=>setDupName(e.target.value)} placeholder="Ej: Limpia Todo Lavanda" style={IS} autoFocus/>
+          </Field>
+          <BtnPrimary onClick={duplicar} color="#0d7377">⎘ Crear copia</BtnPrimary>
+          <BtnSecondary onClick={()=>setShowDupModal(false)}>Cancelar</BtnSecondary>
+        </ModalShell>
+      )}
       <div style={{margin:"6px 16px 4px",background:"#f0f6ff",border:"1.5px solid #e3f0ff",borderRadius:12,padding:14,borderTop:"3px solid #1565c0"}}>
         <div style={{fontSize:11,fontWeight:800,color:"#1565c0",textTransform:"uppercase",letterSpacing:".06em",marginBottom:10}}>Resumen económico</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
@@ -364,7 +391,7 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
         ))}
       </div>
       <div style={{height:14}}/>
-      {editingProd&&<ModalProd prod={p}
+      {editingProd&&editMode&&<ModalProd prod={p}
         onClose={()=>setEditingProd(false)}
         onSave={async(data)=>{await apiFetch.put(`/products/${p.id}`,data);setP(prev=>({...prev,...data}));setEditingProd(false);onRefresh();showToast("Producto actualizado ✓")}}
         onDelete={async()=>{if(!confirm("¿Eliminar este producto?"))return;await apiFetch.del(`/products/${p.id}`);onBack();onRefresh();showToast("Eliminado")}}
@@ -1115,8 +1142,50 @@ function ModalEditarVenta({venta,products,onClose,onSave}){
   );
 }
 
+// ──────── LOGIN ───────────────────────────────────────────────
+function PgLogin({onLogin}){
+  const [user,setUser]=useState("");
+  const [pass,setPass]=useState("");
+  const [err,setErr]=useState("");
+  const [loading,setLoading]=useState(false);
+
+  function handleLogin(){
+    setLoading(true);setErr("");
+    setTimeout(()=>{
+      if(user==="AdminGave"&&pass==="572148477@"){
+        sessionStorage.setItem("gave_auth","1");
+        onLogin();
+      } else {
+        setErr("Usuario o contraseña incorrectos");
+      }
+      setLoading(false);
+    },600);
+  }
+
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#1565c0,#0d47a1 55%,#1a237e)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#fff",borderRadius:20,padding:"32px 24px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <img src="/logo1.png" style={{height:60,objectFit:"contain",marginBottom:12}} onError={e=>e.target.style.display="none"}/>
+          <div style={{fontSize:22,fontWeight:800,color:"#1565c0"}}>SIONEX</div>
+          <div style={{fontSize:12,color:"#8a9ab8",marginTop:4}}>Sistema de gestión</div>
+        </div>
+        <Field label="Usuario">
+          <input value={user} onChange={e=>setUser(e.target.value)} placeholder="Usuario" style={IS} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+        </Field>
+        <Field label="Contraseña">
+          <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="Contraseña" style={IS} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+        </Field>
+        {err&&<div style={{background:"#fdf0ef",border:"1.5px solid #c0392b",borderRadius:8,padding:"8px 12px",color:"#c0392b",fontSize:13,fontWeight:600,marginBottom:10,textAlign:"center"}}>{err}</div>}
+        <BtnPrimary onClick={handleLogin}>{loading?"Verificando...":"Ingresar"}</BtnPrimary>
+      </div>
+    </div>
+  );
+}
+
 // ──────── APP ROOT ────────────────────────────────────────────
 export default function App(){
+  const [auth,setAuth]=useState(()=>sessionStorage.getItem("gave_auth")==="1");
   const [page,setPage]=useState("inicio");
   const [products,setProducts]=useState([]);
   const [insumos,setInsumos]=useState([]);
@@ -1125,6 +1194,8 @@ export default function App(){
   const [curProd,setCurProd]=useState(null);
   const [showNewProd,setShowNewProd]=useState(false);
   const {toast,show:showToast}=useToast();
+
+  if(!auth)return <PgLogin onLogin={()=>setAuth(true)}/>;
 
   const [proveedores,setProveedores]=useState(()=>{try{return JSON.parse(localStorage.getItem("gave_proveedores"))||PROVEEDORES_INICIALES}catch{return PROVEEDORES_INICIALES}});
   const [compras,setCompras]=useState(()=>{try{return JSON.parse(localStorage.getItem("gave_compras"))||COMPRAS_INICIALES}catch{return COMPRAS_INICIALES}});
