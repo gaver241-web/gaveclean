@@ -1194,9 +1194,6 @@ export default function App(){
   const [curProd,setCurProd]=useState(null);
   const [showNewProd,setShowNewProd]=useState(false);
   const {toast,show:showToast}=useToast();
-
-  if(!auth)return <PgLogin onLogin={()=>setAuth(true)}/>;
-
   const [proveedores,setProveedores]=useState(()=>{try{return JSON.parse(localStorage.getItem("gave_proveedores"))||PROVEEDORES_INICIALES}catch{return PROVEEDORES_INICIALES}});
   const [compras,setCompras]=useState(()=>{try{return JSON.parse(localStorage.getItem("gave_compras"))||COMPRAS_INICIALES}catch{return COMPRAS_INICIALES}});
 
@@ -1235,6 +1232,8 @@ export default function App(){
     {id:"balance",label:"Balance",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
     {id:"proveedores",label:"Proveed.",icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="21" height="21"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>},
   ];
+
+  if(!auth)return <PgLogin onLogin={()=>setAuth(true)}/>;
 
   return(
     <div style={{minHeight:"100vh",background:"#f0f5fb",color:"#1a2540",fontFamily:"system-ui, sans-serif",overflowX:"hidden"}}>
