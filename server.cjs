@@ -5,7 +5,11 @@ const { MongoClient, ObjectId } = require("mongodb");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const MONGO_URL = process.env.MONGO_URL || "mongodb+srv://gavecleam:HF8sGunBlFenJNAa@cluster0.56hforp.mongodb.net/gaveclean?retryWrites=true&w=majority&appName=Cluster0";
+const MONGO_URL = process.env.MONGO_URL;
+if (!MONGO_URL) {
+  console.error("❌ Falta la variable de entorno MONGO_URL. Agrégala en Hostinger (Variables de entorno).");
+  process.exit(1);
+}
 
 let db;
 
