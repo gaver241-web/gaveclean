@@ -133,7 +133,7 @@ function Field({label,children}){return(<div style={{marginBottom:10}}><div styl
 function BtnPrimary({onClick,children,color="#1565c0"}){return<button onClick={onClick} style={{width:"100%",padding:13,background:color,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginTop:4,display:"block"}}>{children}</button>}
 function BtnSecondary({onClick,children}){return<button onClick={onClick} style={{width:"100%",padding:11,background:"transparent",border:"1.5px solid #c4d4e8",borderRadius:12,color:"#4a5d7a",fontSize:14,fontWeight:600,cursor:"pointer",marginTop:6,display:"block"}}>{children}</button>}
 function BtnDanger({onClick,children}){return<button onClick={onClick} style={{width:"100%",padding:11,background:"#fdf0ef",border:"1.5px solid #c0392b",borderRadius:12,color:"#c0392b",fontSize:14,fontWeight:700,cursor:"pointer",marginTop:6,display:"block"}}>{children}</button>}
-function ModalShell({title,onClose,children}){return(<div style={{position:"fixed",inset:0,background:"rgba(10,20,50,.35)",zIndex:300,display:"flex",alignItems:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}><div style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"18px 16px 28px",maxHeight:"92vh",overflowY:"auto"}}><div style={{fontSize:16,fontWeight:800,marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>{title}<button onClick={onClose} style={{width:30,height:30,borderRadius:"50%",border:"1.5px solid #c4d4e8",background:"#e5edf7",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",color:"#4a5d7a"}}>×</button></div>{children}</div></div>)}
+function ModalShell({title,onClose,children}){return(<div className="modal-overlay" style={{position:"fixed",inset:0,background:"rgba(10,20,50,.35)",zIndex:300,display:"flex",alignItems:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}><div className="modal-sheet" style={{background:"#fff",borderRadius:"20px 20px 0 0",width:"100%",padding:"18px 16px 28px",maxHeight:"92vh",overflowY:"auto"}}><div style={{fontSize:16,fontWeight:800,marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>{title}<button onClick={onClose} style={{width:30,height:30,borderRadius:"50%",border:"1.5px solid #c4d4e8",background:"#e5edf7",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",color:"#4a5d7a"}}>×</button></div>{children}</div></div>)}
 
 // ──────── INICIO ─────────────────────────────────────────────
 function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCurProd,onNewProd}){
@@ -144,7 +144,7 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
   const totFiado=fiadas.reduce((s,v)=>s+ventaTotalReal(v),0);
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{background:"linear-gradient(135deg,#1565c0,#0d47a1 55%,#1a237e)",padding:"22px 16px 18px",color:"#fff"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
           <img src="/logo1.png" style={{height:48,objectFit:"contain",filter:"brightness(0) invert(1)"}} />
@@ -168,7 +168,7 @@ function PgInicio({products,insumos,ventas,compras,stockProductos,setPage,setCur
         <div style={{fontSize:10,fontWeight:800,color:"#8a9ab8",letterSpacing:".1em",textTransform:"uppercase"}}>Stock de productos</div>
         <button onClick={()=>setPage("stock")} style={{padding:"5px 12px",border:"1.5px solid #0d7377",borderRadius:30,background:"#e0f5f5",color:"#0d7377",fontSize:12,fontWeight:700,cursor:"pointer"}}>Ver stock</button>
       </div>
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+      <div className="lista-grid" style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
         {stockProductos.map(sp=>{
           const prod=products.find(p=>String(p.id)===String(sp.prodId));
           if(!prod)return null;
@@ -210,7 +210,7 @@ function PgStock({products,stockProductos,onRefresh,showToast}){
   }
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div><div style={{fontSize:20,fontWeight:800}}>Stock de productos</div><div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>Litros producidos disponibles para venta</div></div>
@@ -218,7 +218,7 @@ function PgStock({products,stockProductos,onRefresh,showToast}){
         </div>
       </div>
       <div style={{height:10}}/>
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
+      <div className="lista-grid" style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
         {stockProductos.map(sp=>{
           const prod=products.find(p=>String(p.id)===String(sp.prodId));
           if(!prod)return null;
@@ -302,7 +302,7 @@ function PgFormula({prod,insumos,onBack,onRefresh,showToast}){
   }
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{background:"#fff",padding:"12px 16px",borderBottom:"1px solid #dce6f0",display:"flex",alignItems:"center",gap:10,position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <button onClick={onBack} style={{width:36,height:36,borderRadius:10,border:"1.5px solid #c4d4e8",background:"#e5edf7",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",color:"#4a5d7a",fontSize:20}}>‹</button>
         <span style={{fontSize:24}}>{p.ico||p.emoji||"🧴"}</span>
@@ -435,7 +435,7 @@ function PgInventario({insumos,onRefresh,showToast}){
   async function updStock(id,v){await apiFetch.put(`/inventario/${id}`,{stock:parseFloat(v)||0});onRefresh();showToast("Stock guardado ✓")}
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div><div style={{fontSize:20,fontWeight:800}}>Inventario</div><div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>{insumos.length} insumos</div></div>
@@ -619,7 +619,7 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
   });
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
@@ -639,7 +639,7 @@ function PgVentas({ventas,products,stockProductos,onRefresh,showToast}){
       </div>
       <div style={{height:10}}/>
       {ventasFiltradas.length===0&&<div style={{textAlign:"center",padding:"36px 20px",color:"#8a9ab8",fontSize:14}}>Sin ventas en esta categoría.</div>}
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
+      <div className="lista-grid" style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
         {[...ventasFiltradas].reverse().map(v=>{
           const esFiado=v.pago==="fiado";
           const cobrado=v.cobrado;
@@ -915,7 +915,7 @@ function PgBalance({ventas,products}){
   const topCli=Object.values(contCli).sort((a,b)=>b.compras-a.compras).slice(0,5);
 
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{fontSize:20,fontWeight:800}}>Balance</div>
         <div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>{ventas.length} ventas registradas</div>
@@ -989,13 +989,13 @@ function PgBalance({ventas,products}){
 function PgProveedores({proveedores,compras,onAddProv,onEditProv,onDelProv,showToast}){
   const totC=compras.reduce((s,c)=>s+montoEnSoles(c),0);
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{fontSize:20,fontWeight:800}}>Proveedores</div>
         <div style={{fontSize:12,color:"#4a5d7a",marginTop:1}}>Total comprado: S/{f2(totC)}</div>
       </div>
       <div style={{height:10}}/>
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
+      <div className="lista-grid" style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8}}>
         {proveedores.map(pv=>{
           const tot=compras.filter(c=>c.provId===pv.id).reduce((s,c)=>s+montoEnSoles(c),0);
           return(
@@ -1015,7 +1015,7 @@ function PgProveedores({proveedores,compras,onAddProv,onEditProv,onDelProv,showT
 // ──────── PÁGINA FÓRMULAS ────────────────────────────────────
 function PgFormulas({products,insumos,setPage,setCurProd,onNewProd}){
   return(
-    <div style={{paddingBottom:76}}>
+    <div className="pg" style={{paddingBottom:76}}>
       <div style={{padding:"14px 16px 10px",background:"#fff",borderBottom:"1px solid #dce6f0",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 10px rgba(21,101,192,.07)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div>
@@ -1026,7 +1026,7 @@ function PgFormulas({products,insumos,setPage,setCurProd,onNewProd}){
         </div>
       </div>
       <div style={{height:10}}/>
-      <div style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
+      <div className="lista-grid" style={{padding:"0 16px",display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
         {products.map(p=>{
           const{cpl,gl,mrg}=calcProd(p,insumos);
           const cl=CL[p.col||"blue"]||CL.blue;
@@ -1236,7 +1236,7 @@ export default function App(){
   if(!auth)return <PgLogin onLogin={()=>setAuth(true)}/>;
 
   return(
-    <div style={{minHeight:"100vh",background:"#f0f5fb",color:"#1a2540",fontFamily:"system-ui, sans-serif",overflowX:"hidden"}}>
+    <div className={"app-root"+(page==="formula"?" no-nav":"")} style={{minHeight:"100vh",background:"#f0f5fb",color:"#1a2540",fontFamily:"system-ui, sans-serif",overflowX:"hidden"}}>
       {page==="inicio"&&<PgInicio products={products} insumos={insumos} ventas={ventas} compras={compras} stockProductos={stockProductos} setPage={setPage} setCurProd={setCurProd} onNewProd={()=>setShowNewProd(true)}/>}
       {page==="formulas"&&<PgFormulas products={products} insumos={insumos} setPage={setPage} setCurProd={setCurProd} onNewProd={()=>setShowNewProd(true)}/>}
       {page==="stock"&&<PgStock products={products} stockProductos={stockProductos} onRefresh={loadAll} showToast={showToast}/>}
@@ -1247,17 +1247,18 @@ export default function App(){
       {page==="proveedores"&&<PgProveedores proveedores={proveedores} compras={compras} onAddProv={d=>setProveedores(p=>[...p,{...d,id:`prov${Date.now()}`}])} onEditProv={(id,d)=>setProveedores(p=>p.map(x=>x.id===id?{...x,...d}:x))} onDelProv={id=>setProveedores(p=>p.filter(x=>x.id!==id))} showToast={showToast}/>}
 
       {page!=="formula"&&(
-        <nav style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"#fff",borderTop:"1px solid #dce6f0",display:"flex",padding:"6px 0 6px"}}>
+        <nav className="app-nav" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"#fff",borderTop:"1px solid #dce6f0",display:"flex",padding:"6px 0 6px"}}>
+          <div className="nav-brand"><img src="/logo1.png" alt="" /><div><div style={{fontSize:18,fontWeight:800,letterSpacing:".04em"}}>SIONEX</div><div style={{fontSize:10,opacity:.75}}>Sistema de gestión</div></div></div>
           {NAV.map(({id,label,icon})=>(
-            <button key={id} onClick={()=>setPage(id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"5px 2px",border:"none",background:"transparent",color:page===id?"#1565c0":"#8a9ab8",fontSize:"9px",fontWeight:700,cursor:"pointer",letterSpacing:".03em",textTransform:"uppercase"}}>
+            <button key={id} className={"nav-btn"+(page===id?" on":"")} onClick={()=>setPage(id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"5px 2px",border:"none",background:"transparent",color:page===id?"#1565c0":"#8a9ab8",fontSize:"9px",fontWeight:700,cursor:"pointer",letterSpacing:".03em",textTransform:"uppercase"}}>
               {icon}{label}
-              <div style={{width:4,height:4,borderRadius:"50%",background:"#1565c0",opacity:page===id?1:0,marginTop:-2}}/>
+              <div className="nav-dot" style={{width:4,height:4,borderRadius:"50%",background:"#1565c0",opacity:page===id?1:0,marginTop:-2}}/>
             </button>
           ))}
         </nav>
       )}
 
-      {toast&&<div style={{position:"fixed",bottom:82,left:"50%",transform:"translateX(-50%)",background:toast.ok?"#1b7a4a":"#c0392b",color:"#fff",padding:"10px 20px",borderRadius:30,fontSize:13,fontWeight:700,whiteSpace:"nowrap",zIndex:400,boxShadow:"0 4px 20px rgba(21,101,192,.12)"}}>{toast.msg}</div>}
+      {toast&&<div className="app-toast" style={{position:"fixed",bottom:82,left:"50%",transform:"translateX(-50%)",background:toast.ok?"#1b7a4a":"#c0392b",color:"#fff",padding:"10px 20px",borderRadius:30,fontSize:13,fontWeight:700,whiteSpace:"nowrap",zIndex:400,boxShadow:"0 4px 20px rgba(21,101,192,.12)"}}>{toast.msg}</div>}
 
       {showNewProd&&<ModalProd onClose={()=>setShowNewProd(false)} onSave={async d=>{await apiFetch.post("/products",{...d,ings:[],stock:0});setShowNewProd(false);await loadAll();showToast("Producto creado ✓")}}/>}
     </div>
